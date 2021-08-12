@@ -7,7 +7,6 @@ Version = '0.9.9-ccd beta'  # HDF save format, CCD trigger, MCA, Newport stages
 import os
 import string
 import time
-from math import *
 from tkinter import *
 from tkinter.filedialog import LoadFileDialog
 
@@ -1273,7 +1272,7 @@ class MainWindow(Frame):
             calct = (zmove + (zv - zvb) * zta) / zv
             ztype = 'Trapezoidal'
         elif (zmove < ztrap):
-            calct = 2 * (sqrt(zvb ** 2 + zq * zmove) - zvb) / zq
+            calct = 2 * (np.sqrt(zvb ** 2 + zq * zmove) - zvb) / zq
             ztype = 'Triangular'
         print(zname + '          Calculated time:  ' + '%.3f' % (calct) + ' s (' + ztype + ')')
         t1 = time.time()
