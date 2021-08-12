@@ -5,17 +5,18 @@ Version = '0.9.9-ccd beta'  # HDF save format, CCD trigger, MCA, Newport stages
 # Mono2 default
 
 import os
-import sys
-import time
 import string
-import tables
-import Numeric
+import time
 from math import *
 from tkinter import *
-from dbgtk import *
 from tkinter.filedialog import LoadFileDialog
+
+import numpy as np
+import tables
 from EpicsCA import *
 from EpicsMotor import *
+from dbgtk import *
+
 
 ccdfudge = 10  # seconds
 dxpfudge = 1
@@ -1450,7 +1451,7 @@ class MainWindow(Frame):
                 MCAe['LiveT'] = mcaData.live[i]
                 MCAe['RealT'] = mcaData.real[i]
                 MCAe['DeadT'] = mcaData.dead[i]
-                MCAe['sROI'] = Numeric.array(mcaData.sROI[i])
+                MCAe['sROI'] = np.array(mcaData.sROI[i])
                 MCAe['data'] = mcaData.mca[i]
                 MCAe.append()
                 MCAt.flush()
