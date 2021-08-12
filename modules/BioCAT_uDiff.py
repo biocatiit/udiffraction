@@ -11,9 +11,9 @@ import string
 import tables
 import Numeric
 from math import *
-from Tkinter import *
+from tkinter import *
 from dbgtk import *
-from FileDialog import LoadFileDialog
+from tkinter.filedialog import LoadFileDialog
 from EpicsCA import *
 from EpicsMotor import *
 
@@ -271,8 +271,7 @@ class MotorEntry(Frame):
             return
 
     def browse(self):
-        print
-        "I don't do anything yet"
+        print("I don't do anything yet")
 
     def zap(self, event):
         # Set the flag red
@@ -353,8 +352,7 @@ class MCAPanel(Frame):
         Radiobutton(self, text="No XRF", variable=self.MCAv, value=1).grid(row=1, column=0)
         Radiobutton(self, text="XRD/XRF", variable=self.MCAv, value=0).grid(row=1, column=1)
         NoXRF = self.MCAv.get()
-        print
-        ' NoXRF=', NoXRF
+        print(' NoXRF=', NoXRF)
         # Entry(self,bg='cyan',textvariable=self.intt, width=6).grid(row=0,column=2)
         # Label(self, text="s").grid(row=0,column=3)
         Label(self, text="CCD Trigger Channel (Default = 15) ").grid(row=2, column=0)
@@ -363,11 +361,11 @@ class MCAPanel(Frame):
         self.jcb = []
         self.j = []
 
-        for i in xrange(MAXCHANNELS / 2):
+        for i in range(MAXCHANNELS / 2):
             self.j.append(IntVar())
             self.jcb.append(Checkbutton(self, relief=SUNKEN, text=str(i + 1), variable=self.j[i]))
             self.jcb[i].grid(row=0, column=5 + i)
-        for i in xrange((MAXCHANNELS / 2), MAXCHANNELS):
+        for i in range((MAXCHANNELS / 2), MAXCHANNELS):
             self.j.append(IntVar())
             self.jcb.append(Checkbutton(self, relief=SUNKEN, text=str(i + 1), variable=self.j[i]))
             self.jcb[i].grid(row=1, column=5 + i - (MAXCHANNELS / 2))
@@ -485,11 +483,10 @@ class MainWindow(Frame):
         if pfile:
             self.pfp = open(pfile, 'w')
             self.pfp.write('Version = ' + Version + '\n')
-            for i in xrange(len(self.pfstruc)):
+            for i in range(len(self.pfstruc)):
                 self.pfp.write(self.pfstruc[i][0] + ' = ' + str(self.pfstruc[i][1].get()) + '\n')
             self.pfp.close()
-            print
-            "Reloading ", pfile
+            print("Reloading ", pfile)
             self.pload(pfile)  # Loads the parameter file just saved.
             self.update()
 
@@ -506,12 +503,10 @@ class MainWindow(Frame):
         for line in self.pfp:
             pdata = string.split(string.split(line, '=')[1], ',')
             if (lineno == 0):  # This is the version string
-                print
-                "Parameter File Version:  " + string.strip(pdata[0])
+                print("Parameter File Version:  " + string.strip(pdata[0]))
                 self.param.append(string.strip(pdata[0]))
             else:
-                print
-                pdata, len(pdata)
+                print(pdata, len(pdata))
                 ROI = len(pdata)
                 self.param.append(string.strip(pdata[idex]))
             lineno += 1
@@ -521,10 +516,9 @@ class MainWindow(Frame):
             self.statustext.set('Version Mismatch: ' + self.param[0] + ' != ' + Version)
             self.update()
             return
-        for i in xrange(len(self.pfstruc)):
+        for i in range(len(self.pfstruc)):
             self.pfstruc[i][1].set(self.param[i + 1])  # self.param[0] -> version string
-        print
-        "Regions = ", ROI
+        print("Regions = ", ROI)
 
     def pappend(self, qfile=None):
         global pfile, ROI
@@ -537,8 +531,7 @@ class MainWindow(Frame):
         self.pfp = open(pfile, 'rw+')
         for line in self.pfp:
             pdata = string.split(string.strip(string.split(line, '=')[1]), ',')
-            print
-            pdata, len(pdata)
+            print(pdata, len(pdata))
             ROI = len(pdata)
             parlist.append(pdata)
         if (parlist[0][0] != Version):
@@ -548,23 +541,20 @@ class MainWindow(Frame):
             return
         self.pfp.seek(0)
         self.pfp.write('Version = ' + Version + '\n')
-        for i in xrange(len(self.pfstruc)):
+        for i in range(len(self.pfstruc)):
             parlist[i + 1].append(str(self.pfstruc[i][1].get()))
             self.pfp.write(self.pfstruc[i][0] + ' = ')
-            for j in xrange(len(parlist[i + 1])):
+            for j in range(len(parlist[i + 1])):
                 self.pfp.write(str(parlist[i + 1][j]))
                 if (j != len(parlist[i + 1]) - 1):
                     self.pfp.write(',')
             self.pfp.write('\n')
-            print
-            self.pfstruc[i][0] + ' -> ' + str(parlist[i + 1])
+            print(self.pfstruc[i][0] + ' -> ' + str(parlist[i + 1]))
         self.pfp.close()
-        print
-        "Reloading ", pfile
+        print("Reloading ", pfile)
         self.pload(pfile)  # Loads the parameter file just saved.
 
-        print
-        "Regions = ", ROI
+        print("Regions = ", ROI)
 
     def harikiri(self):
         sys.exit(0)
@@ -625,8 +615,7 @@ class MainWindow(Frame):
             self.statustext.set("Joerger Delay != 0")
             return
         if (PV(PV_BL + JOERGER + J1SHOT).get() != 0):
-            print
-            'Joerger not in one-shot mode.... setting...'
+            print('Joerger not in one-shot mode.... setting...')
             if (PV(PV_BL + JOERGER + J1SHOT).put(0) == None):
                 self.go = 0
                 self.statusbox.config(fg="pink")
@@ -664,19 +653,17 @@ class MainWindow(Frame):
         # Start the Joerger counting:
         a = j_start_pv.put(1)
         if (a == None):
-            print
-            'ERROR: Failed caput' + `j_start_pv.pvname`
+            print('ERROR: Failed caput' + repr(j_start_pv.pvname))
             sys.exit(-1)
         # Wait for the specified time
         time.sleep(darktime + fudge)
         # Stop counting
         # Check to be sure the Joerger is done counting:
         while (j_start_pv.get() != 0):
-            print
-            'ERROR: Joerger not finished counting'
+            print('ERROR: Joerger not finished counting')
         # Get the data
         dark = []
-        for i in xrange(MAXCHANNELS):
+        for i in range(MAXCHANNELS):
             dark.append(PV(PV_BL + JOERGER + JDATA + str(i + 1)).get() / 10.)
         self.statusbox.config(fg="green")
         self.statustext.set("Dark Currents Recorded")
@@ -871,20 +858,20 @@ class MainWindow(Frame):
             mca_ROIh_pv = [];
             mca_ROIn_pv = [];
             mca_ROId_pv = []
-            for i in xrange(nMCA):
+            for i in range(nMCA):
                 mca_ROIl_pv.append([]);
                 mca_ROIh_pv.append([])
                 mca_ROId_pv.append([]);
                 mca_ROIn_pv.append([])
-                mca_data_pv.append(PV(PV_BL + MCA_R + MCA_D + `i + 1` + '.VAL'))
-                mca_live_pv.append(PV(PV_BL + MCA_R + MCA_D + `i + 1` + '.ELTM'))
-                mca_real_pv.append(PV(PV_BL + MCA_R + MCA_D + `i + 1` + '.ERTM'))
-                mca_dead_pv.append(PV(PV_BL + MCA_R + MCA_D + `i + 1` + '.IDTIM'))
-                for j in xrange(nROI):
-                    mca_ROId_pv[i].append(PV(PV_BL + MCA_R + MCA_D + `i + 1` + '.R' + `j`))
-                    mca_ROIl_pv[i].append(PV(PV_BL + MCA_R + MCA_D + `i + 1` + '.R' + `j` + 'LO'))
-                    mca_ROIh_pv[i].append(PV(PV_BL + MCA_R + MCA_D + `i + 1` + '.R' + `j` + 'HI'))
-                    mca_ROIn_pv[i].append(PV(PV_BL + MCA_R + MCA_D + `i + 1` + '.R' + `j` + 'NM'))
+                mca_data_pv.append(PV(PV_BL + MCA_R + MCA_D + repr(i + 1) + '.VAL'))
+                mca_live_pv.append(PV(PV_BL + MCA_R + MCA_D + repr(i + 1) + '.ELTM'))
+                mca_real_pv.append(PV(PV_BL + MCA_R + MCA_D + repr(i + 1) + '.ERTM'))
+                mca_dead_pv.append(PV(PV_BL + MCA_R + MCA_D + repr(i + 1) + '.IDTIM'))
+                for j in range(nROI):
+                    mca_ROId_pv[i].append(PV(PV_BL + MCA_R + MCA_D + repr(i + 1) + '.R' + repr(j)))
+                    mca_ROIl_pv[i].append(PV(PV_BL + MCA_R + MCA_D + repr(i + 1) + '.R' + repr(j) + 'LO'))
+                    mca_ROIh_pv[i].append(PV(PV_BL + MCA_R + MCA_D + repr(i + 1) + '.R' + repr(j) + 'HI'))
+                    mca_ROIn_pv[i].append(PV(PV_BL + MCA_R + MCA_D + repr(i + 1) + '.R' + repr(j) + 'NM'))
 
             ##For the MAR, the trigger channel is specified above.  No need to check.
             try:
@@ -899,7 +886,7 @@ class MainWindow(Frame):
                 self.statusbox.config(fg="pink")
                 self.statustext.set("Trigger Channel must be between 10 and 15")
                 return
-            trigPV = PV(PV_BL + 'bo0:ch' + `trigch`)
+            trigPV = PV(PV_BL + 'bo0:ch' + repr(trigch))
             trigPV.put(0)
 
             ##The CCD time is specified in the MAR window
@@ -940,7 +927,7 @@ class MainWindow(Frame):
             return
         scaler = [];
         scalerPV = []
-        for i in xrange(MAXCHANNELS):
+        for i in range(MAXCHANNELS):
             if (self.mca.j[i].get() == 1):
                 scaler.append(i + 1)
                 scalerPV.append(PV(PV_BL + JOERGER + JDATA + str(i + 1)))
@@ -983,9 +970,9 @@ class MainWindow(Frame):
         ginfo = h5f.createGroup("/", 'header', 'Scan Information')
 
         a = h5f.createArray('/header', 'Date', [time.asctime()], 'Date of Data Aquisition')
-        for i in xrange(len(KEITH)):
-            a = h5f.createArray('/header', 'Keithley' + `i` + 'Gain', [k_gain_pv[i].get()], \
-                                'Gain of Keithley Amplifier ' + `i` + ' (V/A)')
+        for i in range(len(KEITH)):
+            a = h5f.createArray('/header', 'Keithley' + repr(i) + 'Gain', [k_gain_pv[i].get()], \
+                                'Gain of Keithley Amplifier ' + repr(i) + ' (V/A)')
         # a = h5f.createArray('/header','MonochromatorEnergy',[Energy.get()], \
         #      'Energy of Monochromator (keV)')
         a = h5f.createArray('/header', 'IntegrationTime', [inttime], \
@@ -1026,11 +1013,11 @@ class MainWindow(Frame):
         sROIe = t.row
 
         if (NoXRF == 0):  # NoXRF==1 means no fluorescence; 0 means include XRF
-            for i in xrange(nMCA):
+            for i in range(nMCA):
                 templ = [];
                 temph = [];
                 tempn = []
-                for j in xrange(nROI):
+                for j in range(nROI):
                     templ.append(mca_ROIl_pv[i][j].get())
                     tempn.append(mca_ROIn_pv[i][j].get())
                     temph.append(mca_ROIh_pv[i][j].get())
@@ -1066,20 +1053,20 @@ class MainWindow(Frame):
         t = h5f.createTable('/data', 'BL', voxel, 'Beam-line Parameters')
         t._v_attrs.BeamCurrent = "Synchrotron Beam Current (mA)"
         jchandesc = 'Joerger Scaler Channels:  '
-        for i in xrange(nJ):
-            jchandesc += 'Jchan' + `scaler[i]`
+        for i in range(nJ):
+            jchandesc += 'Jchan' + repr(scaler[i])
         t._v_attrs.Jchans = jchandesc
         if (ux): t._v_attrs.pX = 'X motor position (mm)'
         if (ut): t._v_attrs.pT = 'THETA motor position (mm)'
         if (uy): t._v_attrs.pY = 'Y motor position (mm)'
 
-        for i in xrange(nMCA):
-            q = h5f.createTable('/data', 'MCA' + `i + 1`, mca, 'Data from MCA' + `i + 1`)
+        for i in range(nMCA):
+            q = h5f.createTable('/data', 'MCA' + repr(i + 1), mca, 'Data from MCA' + repr(i + 1))
             q._v_attrs.LiveT = "Live Time (s)"
             q._v_attrs.RealT = "Real Time (s)"
             q._v_attrs.DeadT = "Dead Time (s)"
             q._v_attrs.sROI = "Spectral ROI data (counts)"
-            q._v_attrs.data = "MCA" + `i + 1` + " Data (counts)"
+            q._v_attrs.data = "MCA" + repr(i + 1) + " Data (counts)"
 
         if (self.go == 1):
             # all is good...
@@ -1113,14 +1100,10 @@ class MainWindow(Frame):
         self.progresstext.set("Beginning Scan...")
         # calculate number of steps and direction for each motor move:
         if (uy):
-            print
-            "Y Motor = " + yPV.description
-            print
-            "yi = " + '%.3f' % yi
-            print
-            "yf = " + '%.3f' % yf
-            print
-            "ystep = " + '%.3f' % ystep
+            print("Y Motor = " + yPV.description)
+            print("yi = " + '%.3f' % yi)
+            print("yf = " + '%.3f' % yf)
+            print("ystep = " + '%.3f' % ystep)
             dir = 1
             delta = yf - yi
             if (delta < 0): dir = -1
@@ -1142,14 +1125,10 @@ class MainWindow(Frame):
         TotalYsteps = yns + 1
 
         if (ut):
-            print
-            "T Motor = " + tPV.description
-            print
-            "ti = " + '%.3f' % ti
-            print
-            "tf = " + '%.3f' % tf
-            print
-            "tstep = " + '%.3f' % tstep
+            print("T Motor = " + tPV.description)
+            print("ti = " + '%.3f' % ti)
+            print("tf = " + '%.3f' % tf)
+            print("tstep = " + '%.3f' % tstep)
             dir = 1
             delta = tf - ti
             if (delta < 0): dir = -1
@@ -1171,14 +1150,10 @@ class MainWindow(Frame):
         TotalTsteps = tns + 1
 
         if (ux):
-            print
-            "X Motor = " + xPV.description
-            print
-            "xi = " + '%.3f' % xi
-            print
-            "xf = " + '%.3f' % xf
-            print
-            "xstep = " + '%.3f' % xstep
+            print("X Motor = " + xPV.description)
+            print("xi = " + '%.3f' % xi)
+            print("xf = " + '%.3f' % xf)
+            print("xstep = " + '%.3f' % xstep)
             dir = 1
             delta = xf - xi
             if (delta < 0): dir = -1
@@ -1200,13 +1175,12 @@ class MainWindow(Frame):
         TotalXsteps = xns + 1
 
         npts = (yns + 1) * (tns + 1) * (xns + 1)
-        print
-        "inttime = " + '%.3f' % inttime
+        print("inttime = " + '%.3f' % inttime)
 
         # Open the file
         self.statustext.set("Scanning...")
         # set up outer (Y) loop:
-        for y in xrange(yns + 1):
+        for y in range(yns + 1):
             # If used, move motor
             if (uy):
                 ypos = yi + (y * ystep);
@@ -1214,7 +1188,7 @@ class MainWindow(Frame):
                 self.move_motor_debug(yPV, 'Y', ypos, ymove, yq, yv, yvb, yta, ytrap)
                 ylastpos = ypos
             # set up inner (Theta) loop:
-            for t in xrange(tns + 1):
+            for t in range(tns + 1):
                 # If used, move motor
                 if (ut):
                     tpos = ti + (t * tstep);
@@ -1222,7 +1196,7 @@ class MainWindow(Frame):
                     self.move_motor_debug(tPV, 'Z', tpos, tmove, tq, tv, tvb, tta, ttrap)
                     tlastpos = tpos
                 # set up inner (X) loop:
-                for x in xrange(xns + 1):
+                for x in range(xns + 1):
                     # If used, move motor
                     if (ux):
                         xpos = xi + (x * xstep);
@@ -1240,10 +1214,9 @@ class MainWindow(Frame):
                     ct = cycle_time - cycle_time_last
                     if (count != 1):
                         at = tt / float(count - 1)
-                        print
-                        'Cycle time:                  ' + '%.3f' % ct + ' s'
+                        print('Cycle time:                  ' + '%.3f' % ct + ' s')
                         # print 'Elapsed time:        '+'%.3f' % tt +' s'
-                        ptxt = `npts` + ' - ' + `count` + ' = ' + `npts - count` + ' points ' + \
+                        ptxt = repr(npts) + ' - ' + repr(count) + ' = ' + repr(npts - count) + ' points ' + \
                                'at ' + '%.3f' % at + ' s/pt                                 ' + \
                                'ETA: ' + time.ctime(time.time() + (npts - count) * at)
                     if (count == 1):
@@ -1252,11 +1225,9 @@ class MainWindow(Frame):
                         self.progressbox.config(fg="white")
                         ptxt = "Mode: Scanning first point..."
                     self.progresstext.set(ptxt)
-                    print
-                    'Program Counters:  DMOV' + `dmswitch`
-                    print
-                    '-----------===========/////(' + `count` + \
-                    ')/////=========[Taking Data]'
+                    print('Program Counters:  DMOV' + repr(dmswitch))
+                    print('-----------===========/////(' + repr(count) + \
+                          ')/////=========[Taking Data]')
                     # check beamline condition or user pause request....
                     while (permit != 1):
                         self.statusbox.config(fg="pink")
@@ -1296,8 +1267,7 @@ class MainWindow(Frame):
         self.statusbox.config(fg="gold")
         self.statustext.set('Moving motor ' + zname + '...')
         self.update()
-        print
-        zname + ' motor diagnostics: (step = ' + '%.3f' % zmove + ')'
+        print(zname + ' motor diagnostics: (step = ' + '%.3f' % zmove + ')')
         if (zq < 0):
             calct = zmove / zv;
             ztype = 'Top-hat'
@@ -1307,19 +1277,17 @@ class MainWindow(Frame):
         elif (zmove < ztrap):
             calct = 2 * (sqrt(zvb ** 2 + zq * zmove) - zvb) / zq;
             ztype = 'Triangular'
-        print
-        zname + '          Calculated time:  ' + '%.3f' % (calct) + ' s (' + ztype + ')'
+        print(zname + '          Calculated time:  ' + '%.3f' % (calct) + ' s (' + ztype + ')')
         t1 = time.time()
         zPV.move(zpos)
 
         # Wait for motor to complete move---New version for 0.9.5
-        for tq in xrange(100):
+        for tq in range(100):
             done = zPV.get_field('done_moving')
             if (done != 0): break
             time.sleep(calct / 10.)
         t2 = time.time()
-        print
-        zname + '              Actual time:  ' + '%.3f' % (t2 - t1) + ' s' + ' (' + `tq` + ' DMOV queries)'
+        print(zname + '              Actual time:  ' + '%.3f' % (t2 - t1) + ' s' + ' (' + repr(tq) + ' DMOV queries)')
         if (tq == 99): dmswitch += 1
 
     def take_data(self, xPV, tPV, yPV, inttime, trigPV, h5f, isContinuous=False, mcaData=None):
@@ -1334,12 +1302,10 @@ class MainWindow(Frame):
         if (NoXRF == 0):
             a = mca_erasestart_pv.put(1)
             if (a == None):
-                print
-                'ERROR: Failed caput' + `mca_erasestart_pv.pvname`
+                print('ERROR: Failed caput' + repr(mca_erasestart_pv.pvname))
                 sys.exit(-1)
             if (mca_erasestart_pv.get() == 0):
-                print
-                'EraseStart = 0'
+                print('EraseStart = 0')
 
         thingy = 'Taking data at: '
         if (uy):
@@ -1358,14 +1324,12 @@ class MainWindow(Frame):
         # Trigger the MAR
         a = mar_acq_pv.put(1)
         if (a == None):
-            print
-            'ERROR: Failed caput' + `trigPV.pvname`
+            print('ERROR: Failed caput' + repr(trigPV.pvname))
 
         # Start the Joerger counting:
         a = j_start_pv.put(1)
         if (a == None):
-            print
-            'ERROR: Failed caput' + `j_start_pv.pvname`
+            print('ERROR: Failed caput' + repr(j_start_pv.pvname))
             sys.exit(-1)
 
         # Open the shutter
@@ -1393,21 +1357,17 @@ class MainWindow(Frame):
         # Stop Joerger counting
         a = j_start_pv.put(0)
         if (a == None):
-            print
-            'ERROR: Failed caput' + `j_start_pv.pvname`
+            print('ERROR: Failed caput' + repr(j_start_pv.pvname))
             sys.exit(-1)
 
-        print
-        ' Outside MCAv==0 line 1279'
+        print(' Outside MCAv==0 line 1279')
         mcaData = McaData(nMCA)
         # Stop MCA counting
         if (NoXRF == 0):
-            print
-            ' Inside MCAv==0'
+            print(' Inside MCAv==0')
             a = mca_stop_pv.put(1, wait=1)
             if (a == None):
-                print
-                'ERROR: Failed caput' + `mca_stop_pv.pvname`
+                print('ERROR: Failed caput' + repr(mca_stop_pv.pvname))
                 sys.exit(-1)
             # give some extra time before reading the mca
             time.sleep(dxpfudge)
@@ -1424,7 +1384,7 @@ class MainWindow(Frame):
             # We're done writing the file already
             # mcaData = McaData(nMCA)
 
-            for i in xrange(nMCA):
+            for i in range(nMCA):
                 mcaData.live.append(mca_live_pv[i].get())
                 mcaData.real.append(mca_real_pv[i].get())
                 mcaData.dead.append(mca_dead_pv[i].get())
@@ -1433,11 +1393,11 @@ class MainWindow(Frame):
                 mcaData.mca.append(mca_data_pv[i].get())
             # Get ROIs
             tempb = []
-            for j in xrange(nROI):
+            for j in range(nROI):
                 tempb.append(mca_ROId_pv[i][j].get())
             mcaData.sROI.append(tempb)
 
-        for i in xrange(len(scalerPV)):
+        for i in range(len(scalerPV)):
             mcaData.jChannels.append(scalerPV[i].get() - inttime * dark[scaler[i] - 1])
 
         if (ux):
@@ -1462,8 +1422,7 @@ class MainWindow(Frame):
         # Wait for the CCD sequence to complete
         # print 'Waiting for CCD to complete (guessing '+`ccdfudge`+' s)...'
         # time.sleep(ccdfudge)
-        print
-        'Waiting for CCD to complete'
+        print('Waiting for CCD to complete')
         while mar_acq_pv.get() != 0:
             time.sleep(0.1)
         mar_write_pv.put(1)
@@ -1484,7 +1443,7 @@ class MainWindow(Frame):
         dt1.flush()
 
         if (NoXRF == 0):  # include XRF
-            for i in xrange(nMCA):
+            for i in range(nMCA):
                 MCAt = h5f.root.data._v_leaves['MCA1']  # LiveT, RealT, DeadT, sROI, data
                 MCAe = MCAt.row
 
