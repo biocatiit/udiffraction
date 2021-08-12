@@ -5,9 +5,14 @@ Version = '0.9.9-ccd beta'  # HDF save format, CCD trigger, MCA, Newport stages
 # Mono2 default
 
 import os
+import sys
 import string
 import time
-from tkinter import *
+
+from tkinter import StringVar, DoubleVar, IntVar
+from tkinter import SUNKEN, W, E, X, TOP, LEFT, RIGHT
+from tkinter import Button, Radiobutton, Menubutton, Checkbutton
+from tkinter import Label, Frame, Menu, Entry
 from tkinter.filedialog import LoadFileDialog
 
 import numpy as np
