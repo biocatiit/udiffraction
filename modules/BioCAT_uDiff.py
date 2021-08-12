@@ -13,10 +13,9 @@ from tkinter.filedialog import LoadFileDialog
 
 import numpy as np
 import tables
-from EpicsCA import *
-from EpicsMotor import *
 from dbgtk import *
-
+from epics import Motor
+from epics import PV
 
 ccdfudge = 10  # seconds
 dxpfudge = 1
@@ -295,16 +294,16 @@ class MotorEntry(Frame):
                 else:
                     if (self.motorType.get() == 0):
                         self.PV = PV_BL + "e:m" + self.mPV.get()
-                        # Call EpicsMotor at this point.
-                        self.motorPV = EpicsMotor(self.PV)
+                        # Call Motor at this point.
+                        self.motorPV = Motor(self.PV)
                         self.mPVVAL.set(self.motorPV.description)
                         self.mPVPOS.set(round(self.motorPV.get_position(readback=1), 4))
                         self.label.config(fg="green")
                         self.go = 1  # Everything is good as far as getting motor values is concerned.
                     else:
                         self.PV = PV_BL + "n:np" + self.mPV.get()
-                        # Call EpicsMotor at this point.
-                        self.motorPV = EpicsMotor(self.PV)
+                        # Call Motor at this point.
+                        self.motorPV = Motor(self.PV)
                         self.mPVVAL.set(self.motorPV.description)
                         self.mPVPOS.set(round(self.motorPV.get_position(readback=1), 4))
                         self.label.config(fg="green")
