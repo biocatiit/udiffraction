@@ -67,17 +67,17 @@ mar_acq_pv = PV(MAR + 'Acquire')
 mar_int_pv = PV(MAR + 'AcquireTime')
 mar_write_pv = PV(MAR + 'WriteFile')
 
-mxPV = 'none';
-xi = 0.;
-xf = 0;
+mxPV = 'none'
+xi = 0.
+xf = 0
 xstep = 0
-mtPV = 'none';
-ti = 0.;
-tf = 0;
+mtPV = 'none'
+ti = 0.
+tf = 0
 tstep = 0
-myPV = 'none';
-yi = 0.;
-yf = 0;
+myPV = 'none'
+yi = 0.
+yf = 0
 ystep = 0
 MAXMOTORS = 40
 
@@ -127,28 +127,28 @@ class ShutterStatusPanel(Frame):
         self.shutterscan()
 
     def shutterscan(self):
-        global shstat;
+        global shstat
         shstat = 1
         if (sh_a_pv.get()):
             self.a.config(bg='green')
         else:
-            self.a.config(bg='red');
+            self.a.config(bg='red')
             shstat = 0
 
         if (sh_d0_pv.get() + sh_d2_pv.get() == 2 and sh_d1_pv.get() + sh_d3_pv.get() == 0):
             self.d.config(bg='green')
         else:
-            self.d.config(bg='red');
+            self.d.config(bg='red')
             shstat = 0
 
         if (sh_no_pv.get()):
             self.no.config(bg='green')
         else:
-            self.no.config(bg='red');
+            self.no.config(bg='red')
             shstat = 0
 
         if (sh_nc_pv.get()):
-            self.nc.config(bg='red');
+            self.nc.config(bg='red')
             shstat = 0
         else:
             self.nc.config(bg='green')
@@ -158,8 +158,8 @@ class MotorEntry(Frame):
     def __init__(self, master, text):
         Frame.__init__(self, master)
         self.go = 0
-        self.mPV = StringVar();
-        self.mPVVAL = StringVar();
+        self.mPV = StringVar()
+        self.mPVVAL = StringVar()
         self.mPVVAL.set("Motor Name")
         self.mPVPOS = StringVar()
         self.mi = DoubleVar()
@@ -281,14 +281,14 @@ class MotorEntry(Frame):
             try:
                 a = int(self.mPV.get())
             except ValueError:
-                self.motor = 'Invalid Motor';
+                self.motor = 'Invalid Motor'
                 self.mPVVAL.set(self.motor)
                 self.label.config(fg="pink")
                 exit
             else:
                 if (a > MAXMOTORS or a <= 0):
                     self.label.config(fg="pink")
-                    self.motor = 'PV out of range';
+                    self.motor = 'PV out of range'
                     self.mPVVAL.set(self.motor)
                     exit
                 else:
@@ -309,24 +309,24 @@ class MotorEntry(Frame):
                         self.label.config(fg="green")
                         self.go = 1  # Everything is good as far as getting motor values is concerned.
         else:
-            self.go = 1;
+            self.go = 1
             self.motorPV = None
-            self.motor = 'Disabled';
+            self.motor = 'Disabled'
             self.mPVVAL.set(self.motor)
             self.label.config(fg="pink")
 
         mw.update()
 
     def if2cw(self, event):
-        i = self.mi.get();
+        i = self.mi.get()
         f = self.mf.get()
-        self.center.set((f + i) / 2.0);
+        self.center.set((f + i) / 2.0)
         self.width.set(f - i)
 
     def cw2if(self, event):
-        c = self.center.get();
+        c = self.center.get()
         w = self.width.get()
-        self.mi.set(c - (w / 2.0));
+        self.mi.set(c - (w / 2.0))
         self.mf.set(c + (w / 2.0))
 
 
@@ -346,7 +346,7 @@ class MCAPanel(Frame):
         Frame.__init__(self, master)
         self.intt = DoubleVar()
         self.MCAv = IntVar()
-        self.tch = IntVar();
+        self.tch = IntVar()
         self.tch.set(15)
         Label(self, text=" Combined XRD/XRF? (Default Y)").grid(row=0, column=0)
         Radiobutton(self, text="No XRF", variable=self.MCAv, value=1).grid(row=1, column=0)
@@ -369,9 +369,9 @@ class MCAPanel(Frame):
             self.j.append(IntVar())
             self.jcb.append(Checkbutton(self, relief=SUNKEN, text=str(i + 1), variable=self.j[i]))
             self.jcb[i].grid(row=1, column=5 + i - (MAXCHANNELS / 2))
-        self.jcb[2].select();
-        self.jcb[3].select();
-        self.jcb[4].select();
+        self.jcb[2].select()
+        self.jcb[3].select()
+        self.jcb[4].select()
         self.jcb[5].select()
 
 
@@ -380,7 +380,7 @@ class FilenamePanel(Frame):
         Frame.__init__(self, master)
         Label(self, text=text).pack(side=LEFT)
         self.filename = StringVar()
-        self.fileidx = StringVar();
+        self.fileidx = StringVar()
         self.fileidx.set('0001')
         Entry(self, width=55, textvariable=self.filename).pack(side=LEFT, fill=X)
         Label(self, text='Index:').pack(side=LEFT)
@@ -398,13 +398,13 @@ class FilenamePanel(Frame):
 class MainWindow(Frame):
     def __init__(self, master):
         Frame.__init__(self, master)
-        self.statustext = StringVar();
+        self.statustext = StringVar()
         self.statustext.set("Awaiting Scan Parameters")
-        self.progresstext = StringVar();
+        self.progresstext = StringVar()
         self.progresstext.set("Mode: Initial State")
-        self.pausestate = IntVar();
+        self.pausestate = IntVar()
         self.pausestate.set(1)
-        self.pausetext = StringVar();
+        self.pausetext = StringVar()
         self.pausetext.set("Pause ||")
         self.mb = Menubutton(self, text="Parameter Files", relief="groove")
         self.mb.menu = Menu(self.mb, tearoff=0)
@@ -426,20 +426,20 @@ class MainWindow(Frame):
         self.mca.grid(columnspan=3)
         self.f = FilenamePanel(self, "Filename: ")
         self.f.grid(columnspan=3)
-        Button(self, text="Take Dark", \
-               activebackground="black", activeforeground="white", \
+        Button(self, text="Take Dark",
+               activebackground="black", activeforeground="white",
                command=self.take_dark).grid(row=5, column=0, sticky=W)
-        self.go = Button(self, bg='black', fg="green", text="Go! ->", \
-                         activebackground="green", activeforeground="black", \
+        self.go = Button(self, bg='black', fg="green", text="Go! ->",
+                         activebackground="green", activeforeground="black",
                          command=self.gogo)
         self.go.grid(row=5, column=1, sticky=W)
-        self.pauseb = Button(self, bg="black", fg="pink", \
-                             activebackground="red", activeforeground="blue", \
+        self.pauseb = Button(self, bg="black", fg="pink",
+                             activebackground="red", activeforeground="blue",
                              command=self.pausebutton)
         self.pauseb.config(textvariable=self.pausetext)
         self.pauseb.grid(row=5, column=1, sticky=E)
-        self.abortb = Button(self, text="ABORT", bg="black", fg="red", \
-                             activebackground="red", activeforeground="black", \
+        self.abortb = Button(self, text="ABORT", bg="black", fg="red",
+                             activebackground="red", activeforeground="black",
                              command=self.abortbutton)
         self.abortb.grid(row=5, column=2, sticky=E)
         self.go.bind("<Enter>", self.update_motors)
@@ -453,23 +453,23 @@ class MainWindow(Frame):
         ####################################################################
         # If you change this structure, you MUST change the program Version!
         ####################################################################
-        self.pfstruc = [['myPV', self.m.my.mPV], \
-                        ['yi', self.m.my.mi], \
-                        ['yf', self.m.my.mf], \
-                        ['ystep', self.m.my.mstep], \
-                        ['mtPV', self.m.mt.mPV], \
-                        ['ti', self.m.mt.mi], \
-                        ['tf', self.m.mt.mf], \
-                        ['tstep', self.m.mt.mstep], \
-                        ['mxPV', self.m.mx.mPV], \
-                        ['xi', self.m.mx.mi], \
-                        ['xf', self.m.mx.mf], \
-                        ['xstep', self.m.mx.mstep], \
-                        ['CCDch', self.mca.tch], \
-                        ['CCDdt', self.mca.intt], \
-                        ['MCA', self.mca.MCAv], \
-                        ['MCAdt', self.mca.intt], \
-                        ['File', self.f.filename], \
+        self.pfstruc = [['myPV', self.m.my.mPV],
+                        ['yi', self.m.my.mi],
+                        ['yf', self.m.my.mf],
+                        ['ystep', self.m.my.mstep],
+                        ['mtPV', self.m.mt.mPV],
+                        ['ti', self.m.mt.mi],
+                        ['tf', self.m.mt.mf],
+                        ['tstep', self.m.mt.mstep],
+                        ['mxPV', self.m.mx.mPV],
+                        ['xi', self.m.mx.mi],
+                        ['xf', self.m.mx.mf],
+                        ['xstep', self.m.mx.mstep],
+                        ['CCDch', self.mca.tch],
+                        ['CCDdt', self.mca.intt],
+                        ['MCA', self.mca.MCAv],
+                        ['MCAdt', self.mca.intt],
+                        ['File', self.f.filename],
                         ['FileIdx', self.f.fileidx]]
 
     def psave(self, qfile=None):
@@ -571,7 +571,7 @@ class MainWindow(Frame):
 
     def pauseit(self, bleh):
         global permit, reason
-        permit = 0;
+        permit = 0
         reason = bleh
         self.statusbox.config(fg="pink")
         self.statustext.set('Paused: ' + reason)
@@ -671,7 +671,7 @@ class MainWindow(Frame):
 
     def gogo(self):
         global cROI, abort
-        cROI = 1;
+        cROI = 1
         abort = 0
         self.progresstext.set("Mode: Confirming Scan Parameters")
         self.check_status()
@@ -687,11 +687,11 @@ class MainWindow(Frame):
         # Check for green lights everywhere
         # You should probably check to see if the shutters are open/closed.
         # Update motor information
-        self.m.my.zap(None);
+        self.m.my.zap(None)
         uy = self.m.my.use.get()
-        self.m.mt.zap(None);
+        self.m.mt.zap(None)
         ut = self.m.mt.use.get()
-        self.m.mx.zap(None);
+        self.m.mx.zap(None)
         ux = self.m.mx.use.get()
         self.statustext.set("Checking...")
         if (uy):
@@ -839,9 +839,9 @@ class MainWindow(Frame):
             global nROI, mca_ROIn_pv, mca_ROId_pv, mca_ROIl_pv, mca_ROIh_pv
 
             MCA_v = 0
-            MCA_R = 'dxp2:';
+            MCA_R = 'dxp2:'
             MCA_D = 'mca'  # The old AIM had MCA_R='aim_adc1'
-            nROI = 4;
+            nROI = 4
             nMCA = 1
             mca_erasestart_pv = PV(PV_BL + MCA_R + MCA_D + '1EraseStart')
             mca_stop_pv = PV(PV_BL + MCA_R + MCA_D + '1Stop')
@@ -850,18 +850,18 @@ class MainWindow(Frame):
             # and the following two additional fields:
             #                                  .R#BG = 'nAvg', .R#N = 'net'
 
-            mca_data_pv = [];
-            mca_live_pv = [];
-            mca_real_pv = [];
+            mca_data_pv = []
+            mca_live_pv = []
+            mca_real_pv = []
             mca_dead_pv = []
-            mca_ROIl_pv = [];
-            mca_ROIh_pv = [];
-            mca_ROIn_pv = [];
+            mca_ROIl_pv = []
+            mca_ROIh_pv = []
+            mca_ROIn_pv = []
             mca_ROId_pv = []
             for i in range(nMCA):
-                mca_ROIl_pv.append([]);
+                mca_ROIl_pv.append([])
                 mca_ROIh_pv.append([])
-                mca_ROId_pv.append([]);
+                mca_ROId_pv.append([])
                 mca_ROIn_pv.append([])
                 mca_data_pv.append(PV(PV_BL + MCA_R + MCA_D + repr(i + 1) + '.VAL'))
                 mca_live_pv.append(PV(PV_BL + MCA_R + MCA_D + repr(i + 1) + '.ELTM'))
@@ -925,7 +925,7 @@ class MainWindow(Frame):
             self.statusbox.config(fg="pink")
             self.statustext.set("Unable to retrieve correct Joerger Integration Time")
             return
-        scaler = [];
+        scaler = []
         scalerPV = []
         for i in range(MAXCHANNELS):
             if (self.mca.j[i].get() == 1):
@@ -933,7 +933,7 @@ class MainWindow(Frame):
                 scalerPV.append(PV(PV_BL + JOERGER + JDATA + str(i + 1)))
         nJ = len(scaler)
         # File fun
-        filen = self.f.filename.get();
+        filen = self.f.filename.get()
         fileidx = self.f.fileidx.get()
         if (filen == ''):
             self.go = 0
@@ -951,11 +951,10 @@ class MainWindow(Frame):
         while (os.path.exists(filen + '_' + fileidx + '.' + HDFext)):
             self.go = 0
             self.statusbox.config(fg="pink")
-            self.statustext.set('File ' + filen + '_' + fileidx + '.' + HDFext + \
-                                ' already exists.  Incrementing.')
+            self.statustext.set('File ' + filen + '_' + fileidx + '.' + HDFext + ' already exists.  Incrementing.')
             self.update()
             intfi += 1
-            fileidx = '%4.4d' % (intfi);
+            fileidx = '%4.4d' % (intfi)
             self.f.fileidx.set(fileidx)
         self.go = 1
         filename = filen + '_' + fileidx
@@ -965,38 +964,38 @@ class MainWindow(Frame):
         self.update()
         # fHDFhead--------------------------------------------------------------------
         zz = 'FMAP Data Set for ' + filename
-        h5f = tables.openFile(filename + '.' + HDFext, mode='w', title=zz, \
+        h5f = tables.openFile(filename + '.' + HDFext, mode='w', title=zz,
                               filters=tables.Filters(complevel=5))
         ginfo = h5f.createGroup("/", 'header', 'Scan Information')
 
         a = h5f.createArray('/header', 'Date', [time.asctime()], 'Date of Data Aquisition')
         for i in range(len(KEITH)):
-            a = h5f.createArray('/header', 'Keithley' + repr(i) + 'Gain', [k_gain_pv[i].get()], \
+            a = h5f.createArray('/header', 'Keithley' + repr(i) + 'Gain', [k_gain_pv[i].get()],
                                 'Gain of Keithley Amplifier ' + repr(i) + ' (V/A)')
-        # a = h5f.createArray('/header','MonochromatorEnergy',[Energy.get()], \
+        # a = h5f.createArray('/header','MonochromatorEnergy',[Energy.get()],
         #      'Energy of Monochromator (keV)')
-        a = h5f.createArray('/header', 'IntegrationTime', [inttime], \
+        a = h5f.createArray('/header', 'IntegrationTime', [inttime],
                             'Detector integration time (s)')
         if (ux):
-            a = h5f.createArray('/header', 'Xinitial', [self.m.mx.mi.get()], \
+            a = h5f.createArray('/header', 'Xinitial', [self.m.mx.mi.get()],
                                 'Initial X motor position (mm)')
-            a = h5f.createArray('/header', 'Xstep', [self.m.mx.mstep.get()], \
+            a = h5f.createArray('/header', 'Xstep', [self.m.mx.mstep.get()],
                                 'X motor step size (mm)')
-            a = h5f.createArray('/header', 'Xfinal', [self.m.mx.mf.get()], \
+            a = h5f.createArray('/header', 'Xfinal', [self.m.mx.mf.get()],
                                 'Final X motor position (mm)')
         if (ut):
-            a = h5f.createArray('/header', 'THETAinitial', [self.m.mt.mi.get()], \
+            a = h5f.createArray('/header', 'THETAinitial', [self.m.mt.mi.get()],
                                 'Initial THETA motor position (mm)')
-            a = h5f.createArray('/header', 'THETAstep', [self.m.mt.mstep.get()], \
+            a = h5f.createArray('/header', 'THETAstep', [self.m.mt.mstep.get()],
                                 'THETA motor step size (mm)')
-            a = h5f.createArray('/header', 'THETAfinal', [self.m.mt.mf.get()], \
+            a = h5f.createArray('/header', 'THETAfinal', [self.m.mt.mf.get()],
                                 'Final THETA motor position (mm)')
         if (uy):
-            a = h5f.createArray('/header', 'Yinitial', [self.m.my.mi.get()], \
+            a = h5f.createArray('/header', 'Yinitial', [self.m.my.mi.get()],
                                 'Initial Y motor position (mm)')
-            a = h5f.createArray('/header', 'Ystep', [self.m.my.mstep.get()], \
+            a = h5f.createArray('/header', 'Ystep', [self.m.my.mstep.get()],
                                 'Y motor step size (mm)')
-            a = h5f.createArray('/header', 'Yfinal', [self.m.my.mf.get()], \
+            a = h5f.createArray('/header', 'Yfinal', [self.m.my.mf.get()],
                                 'Final Y motor position (mm)')
 
         class sROIt(tables.IsDescription):
@@ -1012,10 +1011,10 @@ class MainWindow(Frame):
         t._v_attrs.HighV = "Spectral ROI Highest Energy Bin"
         sROIe = t.row
 
-        if (NoXRF == 0):  # NoXRF==1 means no fluorescence; 0 means include XRF
+        if (NoXRF == 0):  # NoXRF==1 means no fluorescence 0 means include XRF
             for i in range(nMCA):
-                templ = [];
-                temph = [];
+                templ = []
+                temph = []
                 tempn = []
                 for j in range(nROI):
                     templ.append(mca_ROIl_pv[i][j].get())
@@ -1075,26 +1074,26 @@ class MainWindow(Frame):
             self.statustext.set("Calling Scan Routine...")
             self.update()
             # Call procedure here
-            self.scan(self.m.my.motorPV, yi, yf, ystep, \
-                      self.m.mt.motorPV, ti, tf, tstep, \
-                      self.m.mx.motorPV, xi, xf, xstep, \
+            self.scan(self.m.my.motorPV, yi, yf, ystep,
+                      self.m.mt.motorPV, ti, tf, tstep,
+                      self.m.mx.motorPV, xi, xf, xstep,
                       inttime, trigPV, h5f)
         else:
             self.statusbox.config(fg="pink")
             self.statustext.set("Undetermined Error. Halting.")
             self.update()
 
-    def scan(self, yPV, yi, yf, ystep, \
-             tPV, ti, tf, tstep, \
-             xPV, xi, xf, xstep, \
+    def scan(self, yPV, yi, yf, ystep,
+             tPV, ti, tf, tstep,
+             xPV, xi, xf, xstep,
              inttime, trigPV, h5f):
         global permit, abort, ROI, cROI, dmswitch
         global TotalXsteps, TotalTsteps, TotalYsteps, uy, ut, ux
-        count = 0;
-        begin_time = 0.;
+        count = 0
+        begin_time = 0.
         cycle_time = 0.
-        yns = 0;
-        tns = 0;
+        yns = 0
+        tns = 0
         xns = 0
         self.statustext.set("Beginning Scan...")
         self.progresstext.set("Beginning Scan...")
@@ -1183,7 +1182,7 @@ class MainWindow(Frame):
         for y in range(yns + 1):
             # If used, move motor
             if (uy):
-                ypos = yi + (y * ystep);
+                ypos = yi + (y * ystep)
                 ymove = abs(ypos - ylastpos)
                 self.move_motor_debug(yPV, 'Y', ypos, ymove, yq, yv, yvb, yta, ytrap)
                 ylastpos = ypos
@@ -1191,7 +1190,7 @@ class MainWindow(Frame):
             for t in range(tns + 1):
                 # If used, move motor
                 if (ut):
-                    tpos = ti + (t * tstep);
+                    tpos = ti + (t * tstep)
                     tmove = abs(tpos - tlastpos)
                     self.move_motor_debug(tPV, 'Z', tpos, tmove, tq, tv, tvb, tta, ttrap)
                     tlastpos = tpos
@@ -1199,7 +1198,7 @@ class MainWindow(Frame):
                 for x in range(xns + 1):
                     # If used, move motor
                     if (ux):
-                        xpos = xi + (x * xstep);
+                        xpos = xi + (x * xstep)
                         xmove = abs(xpos - xlastpos)
                         self.move_motor_debug(xPV, 'X', xpos, xmove, xq, xv, xvb, xta, xtrap)
                         xlastpos = xpos
@@ -1208,26 +1207,25 @@ class MainWindow(Frame):
                     #
                     # Calculate ETA
                     count += 1
-                    cycle_time_last = cycle_time;
+                    cycle_time_last = cycle_time
                     cycle_time = time.time()
-                    tt = cycle_time - begin_time;
+                    tt = cycle_time - begin_time
                     ct = cycle_time - cycle_time_last
                     if (count != 1):
                         at = tt / float(count - 1)
                         print('Cycle time:                  ' + '%.3f' % ct + ' s')
                         # print 'Elapsed time:        '+'%.3f' % tt +' s'
-                        ptxt = repr(npts) + ' - ' + repr(count) + ' = ' + repr(npts - count) + ' points ' + \
-                               'at ' + '%.3f' % at + ' s/pt                                 ' + \
-                               'ETA: ' + time.ctime(time.time() + (npts - count) * at)
+                        ptxt = repr(npts) + ' - ' + repr(count) + ' = ' + repr(
+                            npts - count) + ' points ' + 'at ' + '%.3f' % at + ' s/pt                                 ' + 'ETA: ' + time.ctime(
+                            time.time() + (npts - count) * at)
                     if (count == 1):
-                        begin_time = time.time();
+                        begin_time = time.time()
                         cycle_time = time.time()
                         self.progressbox.config(fg="white")
                         ptxt = "Mode: Scanning first point..."
                     self.progresstext.set(ptxt)
                     print('Program Counters:  DMOV' + repr(dmswitch))
-                    print('-----------===========/////(' + repr(count) + \
-                          ')/////=========[Taking Data]')
+                    print('-----------===========/////(' + repr(count) + ')/////=========[Taking Data]')
                     # check beamline condition or user pause request....
                     while (permit != 1):
                         self.statusbox.config(fg="pink")
@@ -1251,7 +1249,7 @@ class MainWindow(Frame):
             ###End of outer (Y) loop...
             #
         if (ROI > cROI and abort == 0):
-            self.pload(pfile, cROI);
+            self.pload(pfile, cROI)
             cROI += 1
             self.check_status()
         # If at the end of a multiple ROI scan, reset ROI:
@@ -1269,13 +1267,13 @@ class MainWindow(Frame):
         self.update()
         print(zname + ' motor diagnostics: (step = ' + '%.3f' % zmove + ')')
         if (zq < 0):
-            calct = zmove / zv;
+            calct = zmove / zv
             ztype = 'Top-hat'
         elif (zmove >= ztrap):
-            calct = (zmove + (zv - zvb) * zta) / zv;
+            calct = (zmove + (zv - zvb) * zta) / zv
             ztype = 'Trapezoidal'
         elif (zmove < ztrap):
-            calct = 2 * (sqrt(zvb ** 2 + zq * zmove) - zvb) / zq;
+            calct = 2 * (sqrt(zvb ** 2 + zq * zmove) - zvb) / zq
             ztype = 'Triangular'
         print(zname + '          Calculated time:  ' + '%.3f' % (calct) + ' s (' + ztype + ')')
         t1 = time.time()
