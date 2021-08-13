@@ -14,10 +14,10 @@ from tkinter import SUNKEN, W, E, X, TOP, LEFT, RIGHT
 from tkinter import Button, Radiobutton, Menubutton, Checkbutton
 from tkinter import Label, Frame, Menu, Entry
 from tkinter.filedialog import LoadFileDialog
+from tkinter.filedialog import askopenfile
 
 import numpy as np
 import tables
-from dbgtk import *
 from epics import Motor
 from epics import PV
 
@@ -481,11 +481,11 @@ class MainWindow(Frame):
         # the job of this command is to save all the parameters into a file for
         # future reference...
         if (qfile == None):
-            pfile = FileBrowse(pat='*.par', mode='save')
+            pfile = askopenfile(mode ='r+', filetypes =[('Par File', '*.par')])
         else:
             pfile = qfile
         if pfile:
-            self.pfp = open(pfile, 'w')
+            self.pfp = pfile
             self.pfp.write('Version = ' + Version + '\n')
             for i in range(len(self.pfstruc)):
                 self.pfp.write(self.pfstruc[i][0] + ' = ' + str(self.pfstruc[i][1].get()) + '\n')
@@ -498,11 +498,11 @@ class MainWindow(Frame):
         global pfile, ROI
         # the job of this command is to reload all the parameters into the program.
         if (qfile == None):
-            pfile = FileBrowse(pat='*.par', mode='load')
+            pfile = askopenfile(mode ='r', filetypes =[('Par File', '*.par')])
         else:
             pfile = qfile
         self.param = []
-        self.pfp = open(pfile, 'r')
+        self.pfp = pfile
         lineno = 0
         for line in self.pfp:
             pdata = string.split(string.split(line, '=')[1], ',')
@@ -528,11 +528,11 @@ class MainWindow(Frame):
         global pfile, ROI
         # the job of this command is to reload all the parameters into the program.
         if (qfile == None):
-            pfile = FileBrowse(pat='*.par', mode='load')
+            pfile = askopenfile(mode ='a+', filetypes =[('Par File', '*.par')])
         else:
             pfile = qfile
         parlist = []
-        self.pfp = open(pfile, 'rw+')
+        self.pfp = pfile
         for line in self.pfp:
             pdata = string.split(string.strip(string.split(line, '=')[1]), ',')
             print(pdata, len(pdata))
