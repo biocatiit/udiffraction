@@ -1,18 +1,15 @@
 #! /usr/bin/python
-Version = '0.9.9-ccd beta'  # HDF save format, CCD trigger, MCA, Newport stages
 # Raul Barrea January 2012
 # Small fix for changed Keithley PVs
 # Mono2 default
 
 import os
 import sys
-import string
 import time
-
-from tkinter import StringVar, DoubleVar, IntVar
-from tkinter import SUNKEN, W, E, X, TOP, LEFT, RIGHT
 from tkinter import Button, Radiobutton, Menubutton, Checkbutton
 from tkinter import Label, Frame, Menu, Entry
+from tkinter import SUNKEN, W, E, X, TOP, LEFT, RIGHT
+from tkinter import StringVar, DoubleVar, IntVar
 from tkinter.filedialog import LoadFileDialog
 from tkinter.filedialog import askopenfile
 
@@ -21,6 +18,7 @@ import tables
 from epics import Motor
 from epics import PV
 
+Version = '0.9.9-ccd beta'  # HDF save format, CCD trigger, MCA, Newport stages
 ccdfudge = 10  # seconds
 dxpfudge = 1
 fudge = 0.800
@@ -100,7 +98,7 @@ JFREQ = '.FREQ'  # Should be 1e7
 JGATE = '.G'  # followed by a channel number  Should be 0
 JPRE = '.PR'  # followed by a channel number  Should be 0
 
-MAXCHANNELS = PV(PV_BL + JOERGER + '.NCH').get()
+MAX_CHANNELS_PV = PV(PV_BL + JOERGER + '.NCH')
 
 j_start_pv = PV(PV_BL + JOERGER + JSTART)
 j_set_time_pv = PV(PV_BL + JOERGER + JSETTM)
@@ -114,6 +112,13 @@ global nMCA, mca_live_pv, mca_real_pv, mca_dead_pv
 global nROI, mca_ROIn_pv, mca_ROId_pv, mca_ROIl_pv, mca_ROIh_pv
 global NoXRF
 NoXRF = 1  # one means don't save XRF
+
+
+def pv_connected(pv):
+    status = pv.connected
+    if not status:
+        print(f'\033[91mERROR: \033[0mProcess Variable \033[91m{pv.pvname}\033[0m is not connected')
+    return status
 
 
 class ShutterStatusPanel(Frame):
@@ -130,32 +135,39 @@ class ShutterStatusPanel(Frame):
         self.nc.grid(row=0, column=4)
         self.shutterscan()
 
+    def shutter_pv_connected(self):
+        return pv_connected(sh_d0_pv) and \
+               pv_connected(sh_d1_pv) and \
+               pv_connected(sh_d2_pv) and \
+               pv_connected(sh_d3_pv)
+
     def shutterscan(self):
         global shstat
         shstat = 1
-        if (sh_a_pv.get()):
+        if pv_connected(sh_a_pv):
             self.a.config(bg='green')
         else:
             self.a.config(bg='red')
             shstat = 0
 
-        if (sh_d0_pv.get() + sh_d2_pv.get() == 2 and sh_d1_pv.get() + sh_d3_pv.get() == 0):
+        if self.shutter_pv_connected() and (
+                sh_d0_pv.get() + sh_d2_pv.get() == 2 and sh_d1_pv.get() + sh_d3_pv.get() == 0):
             self.d.config(bg='green')
         else:
             self.d.config(bg='red')
             shstat = 0
 
-        if (sh_no_pv.get()):
+        if pv_connected(sh_no_pv):
             self.no.config(bg='green')
         else:
             self.no.config(bg='red')
             shstat = 0
 
-        if (sh_nc_pv.get()):
+        if pv_connected(sh_nc_pv):
+            self.nc.config(bg='green')
+        else:
             self.nc.config(bg='red')
             shstat = 0
-        else:
-            self.nc.config(bg='green')
 
 
 class MotorEntry(Frame):
@@ -356,7 +368,7 @@ class MCAPanel(Frame):
         Radiobutton(self, text="No XRF", variable=self.MCAv, value=1).grid(row=1, column=0)
         Radiobutton(self, text="XRD/XRF", variable=self.MCAv, value=0).grid(row=1, column=1)
         NoXRF = self.MCAv.get()
-        print(' NoXRF=', NoXRF)
+        print('NoXRF=', NoXRF)
         # Entry(self,bg='cyan',textvariable=self.intt, width=6).grid(row=0,column=2)
         # Label(self, text="s").grid(row=0,column=3)
         Label(self, text="CCD Trigger Channel (Default = 15) ").grid(row=2, column=0)
@@ -365,18 +377,20 @@ class MCAPanel(Frame):
         self.jcb = []
         self.j = []
 
-        for i in range(MAXCHANNELS / 2):
-            self.j.append(IntVar())
-            self.jcb.append(Checkbutton(self, relief=SUNKEN, text=str(i + 1), variable=self.j[i]))
-            self.jcb[i].grid(row=0, column=5 + i)
-        for i in range((MAXCHANNELS / 2), MAXCHANNELS):
-            self.j.append(IntVar())
-            self.jcb.append(Checkbutton(self, relief=SUNKEN, text=str(i + 1), variable=self.j[i]))
-            self.jcb[i].grid(row=1, column=5 + i - (MAXCHANNELS / 2))
-        self.jcb[2].select()
-        self.jcb[3].select()
-        self.jcb[4].select()
-        self.jcb[5].select()
+        if pv_connected(MAX_CHANNELS_PV):
+            max_channels = MAX_CHANNELS_PV.get()
+            for i in range(max_channels / 2):
+                self.j.append(IntVar())
+                self.jcb.append(Checkbutton(self, relief=SUNKEN, text=str(i + 1), variable=self.j[i]))
+                self.jcb[i].grid(row=0, column=5 + i)
+            for i in range((max_channels / 2), max_channels):
+                self.j.append(IntVar())
+                self.jcb.append(Checkbutton(self, relief=SUNKEN, text=str(i + 1), variable=self.j[i]))
+                self.jcb[i].grid(row=1, column=5 + i - (max_channels / 2))
+            self.jcb[2].select()
+            self.jcb[3].select()
+            self.jcb[4].select()
+            self.jcb[5].select()
 
 
 class FilenamePanel(Frame):
@@ -481,7 +495,7 @@ class MainWindow(Frame):
         # the job of this command is to save all the parameters into a file for
         # future reference...
         if (qfile == None):
-            pfile = askopenfile(mode ='r+', filetypes =[('Par File', '*.par')])
+            pfile = askopenfile(mode='r+', filetypes=[('Par File', '*.par')])
         else:
             pfile = qfile
         if pfile:
@@ -498,21 +512,21 @@ class MainWindow(Frame):
         global pfile, ROI
         # the job of this command is to reload all the parameters into the program.
         if (qfile == None):
-            pfile = askopenfile(mode ='r', filetypes =[('Par File', '*.par')])
+            pfile = askopenfile(mode='r', filetypes=[('Par File', '*.par')])
         else:
             pfile = qfile
         self.param = []
         self.pfp = pfile
         lineno = 0
         for line in self.pfp:
-            pdata = string.split(string.split(line, '=')[1], ',')
+            pdata = str.split(str.split(line, '=')[1], ',')
             if (lineno == 0):  # This is the version string
-                print("Parameter File Version:  " + string.strip(pdata[0]))
-                self.param.append(string.strip(pdata[0]))
+                print("Parameter File Version:  " + str.strip(pdata[0]))
+                self.param.append(str.strip(pdata[0]))
             else:
                 print(pdata, len(pdata))
                 ROI = len(pdata)
-                self.param.append(string.strip(pdata[idex]))
+                self.param.append(str.strip(pdata[idex]))
             lineno += 1
         self.pfp.close()
         if (self.param[0] != Version):
@@ -528,13 +542,13 @@ class MainWindow(Frame):
         global pfile, ROI
         # the job of this command is to reload all the parameters into the program.
         if (qfile == None):
-            pfile = askopenfile(mode ='a+', filetypes =[('Par File', '*.par')])
+            pfile = askopenfile(mode='a+', filetypes=[('Par File', '*.par')])
         else:
             pfile = qfile
         parlist = []
         self.pfp = pfile
         for line in self.pfp:
-            pdata = string.split(string.strip(string.split(line, '=')[1]), ',')
+            pdata = str.split(str.strip(str.split(line, '=')[1]), ',')
             print(pdata, len(pdata))
             ROI = len(pdata)
             parlist.append(pdata)
@@ -667,8 +681,9 @@ class MainWindow(Frame):
             print('ERROR: Joerger not finished counting')
         # Get the data
         dark = []
-        for i in range(MAXCHANNELS):
-            dark.append(PV(PV_BL + JOERGER + JDATA + str(i + 1)).get() / 10.)
+        if pv_connected(MAX_CHANNELS_PV):
+            for i in range(MAX_CHANNELS_PV.get()):
+                dark.append(PV(PV_BL + JOERGER + JDATA + str(i + 1)).get() / 10.)
         self.statusbox.config(fg="green")
         self.statustext.set("Dark Currents Recorded")
         self.progresstext.set("Ready to begin scan")
@@ -931,10 +946,11 @@ class MainWindow(Frame):
             return
         scaler = []
         scalerPV = []
-        for i in range(MAXCHANNELS):
-            if (self.mca.j[i].get() == 1):
-                scaler.append(i + 1)
-                scalerPV.append(PV(PV_BL + JOERGER + JDATA + str(i + 1)))
+        if pv_connected(MAX_CHANNELS_PV):
+            for i in range(MAX_CHANNELS_PV.get()):
+                if (self.mca.j[i].get() == 1):
+                    scaler.append(i + 1)
+                    scalerPV.append(PV(PV_BL + JOERGER + JDATA + str(i + 1)))
         nJ = len(scaler)
         # File fun
         filen = self.f.filename.get()
