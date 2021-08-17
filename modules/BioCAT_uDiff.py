@@ -11,7 +11,7 @@ from tkinter import Label, Frame, Menu, Entry
 from tkinter import SUNKEN, W, E, X, TOP, LEFT, RIGHT
 from tkinter import StringVar, DoubleVar, IntVar
 from tkinter.filedialog import LoadFileDialog
-from tkinter.filedialog import askopenfile
+from tkinter.filedialog import askopenfilename
 
 import numpy as np
 import tables
@@ -495,15 +495,15 @@ class MainWindow(Frame):
         # the job of this command is to save all the parameters into a file for
         # future reference...
         if (qfile == None):
-            pfile = askopenfile(mode='r+', filetypes=[('Par File', '*.par')])
+            pfile = askopenfilename(filetypes=[('Par File', '*.par')])
         else:
             pfile = qfile
         if pfile:
-            self.pfp = pfile
-            self.pfp.write('Version = ' + Version + '\n')
-            for i in range(len(self.pfstruc)):
-                self.pfp.write(self.pfstruc[i][0] + ' = ' + str(self.pfstruc[i][1].get()) + '\n')
-            self.pfp.close()
+            with open(pfile, 'r+') as pfp:
+                pfp.write('Version = ' + Version + '\n')
+                for i in range(len(self.pfstruc)):
+                    pfp.write(self.pfstruc[i][0] + ' = ' + str(self.pfstruc[i][1].get()) + '\n')
+
             print("Reloading ", pfile)
             self.pload(pfile)  # Loads the parameter file just saved.
             self.update()
@@ -511,25 +511,25 @@ class MainWindow(Frame):
     def pload(self, qfile=None, idex=0):
         global pfile, ROI
         # the job of this command is to reload all the parameters into the program.
-        if (qfile == None):
-            pfile = askopenfile(mode='r', filetypes=[('Par File', '*.par')])
+        if qfile == None:
+            pfile = askopenfilename(filetypes=[('Par File', '*.par')])
         else:
             pfile = qfile
         self.param = []
-        self.pfp = pfile
-        lineno = 0
-        for line in self.pfp:
-            pdata = str.split(str.split(line, '=')[1], ',')
-            if (lineno == 0):  # This is the version string
-                print("Parameter File Version:  " + str.strip(pdata[0]))
-                self.param.append(str.strip(pdata[0]))
-            else:
-                print(pdata, len(pdata))
-                ROI = len(pdata)
-                self.param.append(str.strip(pdata[idex]))
-            lineno += 1
-        self.pfp.close()
-        if (self.param[0] != Version):
+        with open(pfile, 'r') as pfp:
+            lineno = 0
+            for line in pfp:
+                pdata = str.split(str.split(line, '=')[1], ',')
+                if lineno == 0:  # This is the version string
+                    print("Parameter File Version:  " + str.strip(pdata[0]))
+                    self.param.append(str.strip(pdata[0]))
+                else:
+                    print(pdata, len(pdata))
+                    ROI = len(pdata)
+                    self.param.append(str.strip(pdata[idex]))
+                lineno += 1
+
+        if self.param[0] != Version:
             self.statusbox.config(fg="pink")
             self.statustext.set('Version Mismatch: ' + self.param[0] + ' != ' + Version)
             self.update()
@@ -541,34 +541,34 @@ class MainWindow(Frame):
     def pappend(self, qfile=None):
         global pfile, ROI
         # the job of this command is to reload all the parameters into the program.
-        if (qfile == None):
-            pfile = askopenfile(mode='a+', filetypes=[('Par File', '*.par')])
+        if qfile == None:
+            pfile = askopenfilename(filetypes=[('Par File', '*.par')])
         else:
             pfile = qfile
         parlist = []
-        self.pfp = pfile
-        for line in self.pfp:
-            pdata = str.split(str.strip(str.split(line, '=')[1]), ',')
-            print(pdata, len(pdata))
-            ROI = len(pdata)
-            parlist.append(pdata)
-        if (parlist[0][0] != Version):
-            self.statusbox.config(fg="pink")
-            self.statustext.set('Version Mismatch: ' + parlist[0][0] + ' != ' + Version)
-            self.update()
-            return
-        self.pfp.seek(0)
-        self.pfp.write('Version = ' + Version + '\n')
-        for i in range(len(self.pfstruc)):
-            parlist[i + 1].append(str(self.pfstruc[i][1].get()))
-            self.pfp.write(self.pfstruc[i][0] + ' = ')
-            for j in range(len(parlist[i + 1])):
-                self.pfp.write(str(parlist[i + 1][j]))
-                if (j != len(parlist[i + 1]) - 1):
-                    self.pfp.write(',')
-            self.pfp.write('\n')
-            print(self.pfstruc[i][0] + ' -> ' + str(parlist[i + 1]))
-        self.pfp.close()
+        with open(pfile, 'r+') as pfp:
+            for line in pfp:
+                pdata = str.split(str.strip(str.split(line, '=')[1]), ',')
+                print(pdata, len(pdata))
+                ROI = len(pdata)
+                parlist.append(pdata)
+            if parlist[0][0] != Version:
+                self.statusbox.config(fg="pink")
+                self.statustext.set('Version Mismatch: ' + parlist[0][0] + ' != ' + Version)
+                self.update()
+                return
+            pfp.seek(0)
+            pfp.write('Version = ' + Version + '\n')
+            for i in range(len(self.pfstruc)):
+                parlist[i + 1].append(str(self.pfstruc[i][1].get()))
+                pfp.write(self.pfstruc[i][0] + ' = ')
+                for j in range(len(parlist[i + 1])):
+                    pfp.write(str(parlist[i + 1][j]))
+                    if (j != len(parlist[i + 1]) - 1):
+                        pfp.write(',')
+                pfp.write('\n')
+                print(self.pfstruc[i][0] + ' -> ' + str(parlist[i + 1]))
+
         print("Reloading ", pfile)
         self.pload(pfile)  # Loads the parameter file just saved.
 
