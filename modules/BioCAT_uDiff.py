@@ -379,14 +379,14 @@ class MCAPanel(Frame):
 
         if pv_connected(MAX_CHANNELS_PV):
             max_channels = MAX_CHANNELS_PV.get()
-            for i in range(max_channels / 2):
+            for i in range(max_channels // 2):
                 self.j.append(IntVar())
                 self.jcb.append(Checkbutton(self, relief=SUNKEN, text=str(i + 1), variable=self.j[i]))
                 self.jcb[i].grid(row=0, column=5 + i)
-            for i in range((max_channels / 2), max_channels):
+            for i in range((max_channels // 2), max_channels):
                 self.j.append(IntVar())
                 self.jcb.append(Checkbutton(self, relief=SUNKEN, text=str(i + 1), variable=self.j[i]))
-                self.jcb[i].grid(row=1, column=5 + i - (max_channels / 2))
+                self.jcb[i].grid(row=1, column=5 + i - (max_channels // 2))
             self.jcb[2].select()
             self.jcb[3].select()
             self.jcb[4].select()
