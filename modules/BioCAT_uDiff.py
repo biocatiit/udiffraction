@@ -1301,8 +1301,9 @@ class MainWindow(Frame):
 
         # Wait for motor to complete move---New version for 0.9.5
         for tq in range(100):
-            done = zPV.get_field('done_moving')
-            if (done != 0): break
+            done = zPV.get('done_moving')
+            if done != 0: 
+                break
             time.sleep(calct / 10.)
         t2 = time.time()
         print(zname + '              Actual time:  ' + '%.3f' % (t2 - t1) + ' s' + ' (' + repr(tq) + ' DMOV queries)')
