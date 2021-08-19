@@ -1024,7 +1024,7 @@ class MainWindow(Frame):
             Label = tables.StringCol(itemsize=8, shape=(1, nROI), pos=3)
             HighV = tables.Int16Col(shape=(1, nROI), pos=4)
 
-        t = h5f.createTable('/header', 'sROI', sROIt, 'Spectral ROIs')
+        t = h5f.create_table('/header', 'sROI', sROIt, 'Spectral ROIs')
         t._v_attrs.MCAn = "Channel Number"
         t._v_attrs.LowV = "Spectral ROI Lowest Energy Bin"
         t._v_attrs.Label = "User Supplied Spectral ROI Label"
@@ -1069,7 +1069,7 @@ class MainWindow(Frame):
             sROI = tables.Float32Col(shape=(1, nROI))
             data = tables.UInt16Col(shape=(1, 2048))
 
-        t = h5f.createTable('/data', 'BL', voxel, 'Beam-line Parameters')
+        t = h5f.create_table('/data', 'BL', voxel, 'Beam-line Parameters')
         t._v_attrs.BeamCurrent = "Synchrotron Beam Current (mA)"
         jchandesc = 'Joerger Scaler Channels:  '
         for i in range(nJ):
@@ -1080,7 +1080,7 @@ class MainWindow(Frame):
         if (uy): t._v_attrs.pY = 'Y motor position (mm)'
 
         for i in range(nMCA):
-            q = h5f.createTable('/data', 'MCA' + repr(i + 1), mca, 'Data from MCA' + repr(i + 1))
+            q = h5f.create_table('/data', 'MCA' + repr(i + 1), mca, 'Data from MCA' + repr(i + 1))
             q._v_attrs.LiveT = "Live Time (s)"
             q._v_attrs.RealT = "Real Time (s)"
             q._v_attrs.DeadT = "Dead Time (s)"
