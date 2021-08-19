@@ -984,38 +984,38 @@ class MainWindow(Frame):
         self.update()
         # fHDFhead--------------------------------------------------------------------
         zz = 'FMAP Data Set for ' + filename
-        h5f = tables.openFile(filename + '.' + HDFext, mode='w', title=zz,
+        h5f = tables.open_file(filename + '.' + HDFext, mode='w', title=zz,
                               filters=tables.Filters(complevel=5))
-        ginfo = h5f.createGroup("/", 'header', 'Scan Information')
+        ginfo = h5f.create_group("/", 'header', 'Scan Information')
 
-        a = h5f.createArray('/header', 'Date', [time.asctime()], 'Date of Data Aquisition')
+        a = h5f.create_array('/header', 'Date', [time.asctime()], 'Date of Data Aquisition')
         for i in range(len(KEITH)):
-            a = h5f.createArray('/header', 'Keithley' + repr(i) + 'Gain', [k_gain_pv[i].get()],
+            a = h5f.create_array('/header', 'Keithley' + repr(i) + 'Gain', [k_gain_pv[i].get()],
                                 'Gain of Keithley Amplifier ' + repr(i) + ' (V/A)')
-        # a = h5f.createArray('/header','MonochromatorEnergy',[Energy.get()],
+        # a = h5f.create_array('/header','MonochromatorEnergy',[Energy.get()],
         #      'Energy of Monochromator (keV)')
-        a = h5f.createArray('/header', 'IntegrationTime', [inttime],
+        a = h5f.create_array('/header', 'IntegrationTime', [inttime],
                             'Detector integration time (s)')
         if (ux):
-            a = h5f.createArray('/header', 'Xinitial', [self.m.mx.mi.get()],
+            a = h5f.create_array('/header', 'Xinitial', [self.m.mx.mi.get()],
                                 'Initial X motor position (mm)')
-            a = h5f.createArray('/header', 'Xstep', [self.m.mx.mstep.get()],
+            a = h5f.create_array('/header', 'Xstep', [self.m.mx.mstep.get()],
                                 'X motor step size (mm)')
-            a = h5f.createArray('/header', 'Xfinal', [self.m.mx.mf.get()],
+            a = h5f.create_array('/header', 'Xfinal', [self.m.mx.mf.get()],
                                 'Final X motor position (mm)')
         if (ut):
-            a = h5f.createArray('/header', 'THETAinitial', [self.m.mt.mi.get()],
+            a = h5f.create_array('/header', 'THETAinitial', [self.m.mt.mi.get()],
                                 'Initial THETA motor position (mm)')
-            a = h5f.createArray('/header', 'THETAstep', [self.m.mt.mstep.get()],
+            a = h5f.create_array('/header', 'THETAstep', [self.m.mt.mstep.get()],
                                 'THETA motor step size (mm)')
-            a = h5f.createArray('/header', 'THETAfinal', [self.m.mt.mf.get()],
+            a = h5f.create_array('/header', 'THETAfinal', [self.m.mt.mf.get()],
                                 'Final THETA motor position (mm)')
         if (uy):
-            a = h5f.createArray('/header', 'Yinitial', [self.m.my.mi.get()],
+            a = h5f.create_array('/header', 'Yinitial', [self.m.my.mi.get()],
                                 'Initial Y motor position (mm)')
-            a = h5f.createArray('/header', 'Ystep', [self.m.my.mstep.get()],
+            a = h5f.create_array('/header', 'Ystep', [self.m.my.mstep.get()],
                                 'Y motor step size (mm)')
-            a = h5f.createArray('/header', 'Yfinal', [self.m.my.mf.get()],
+            a = h5f.create_array('/header', 'Yfinal', [self.m.my.mf.get()],
                                 'Final Y motor position (mm)')
 
         class sROIt(tables.IsDescription):
@@ -1053,7 +1053,7 @@ class MainWindow(Frame):
         # fHDFhead--------------------------------------------------------------------
         # fHDFdata--------------------------------------------------------------------
         # Structure the HDF file for the data sets
-        gdata = h5f.createGroup("/", 'data', 'Scan Data')
+        gdata = h5f.create_group("/", 'data', 'Scan Data')
 
         class voxel(tables.IsDescription):
             if (ux): pX = tables.Float32Col(pos=1)
