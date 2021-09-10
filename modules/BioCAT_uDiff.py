@@ -3,6 +3,11 @@
 # Small fix for changed Keithley PVs
 # Mono2 default
 
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import object, range, map, str
+from io import open
+import Mp as mp
+
 import os
 import sys
 import time
@@ -15,7 +20,6 @@ from tkinter.filedialog import askopenfilename
 
 import numpy as np
 import tables
-from epics import Motor
 from epics import PV
 
 Version = '0.9.9-ccd beta'  # HDF save format, CCD trigger, MCA, Newport stages
@@ -90,7 +94,7 @@ J1SHOT = '.CONT'
 JDATA = '.S'  # followed by a channel number
 JSETTM = '.TP'
 JETIME = '.T'
-# One probably doesn't want to write to these five PVs, but I place them here 
+# One probably doesn't want to write to these five PVs, but I place them here
 # as a reminder that they should be checked.
 JDIR = '.D'  # followed by a channel number  Should be 0
 JDLY = '.DLY'  # Should be 0
@@ -117,8 +121,37 @@ NoXRF = 1  # one means don't save XRF
 def pv_connected(pv):
     status = pv.connected
     if not status:
-        print(f'\033[91mERROR: \033[0mProcess Variable \033[91m{pv.pvname}\033[0m is not connected')
+        print('\033[91mERROR: \033[0mProcess Variable \033[91m'+pv.pvname+'\033[0m is not connected')
     return status
+
+def get_mxdir():
+    """Gets the top level install directory for MX."""
+    try:
+        mxdir = os.environ["MXDIR"]
+    except:
+        mxdir = "/opt/mx"   # This is the default location.
+
+    return mxdir
+
+def get_mpdir():
+    """Construct the name of the Mp modules directory."""
+    mxdir = get_mxdir()
+
+    mp_modules_dir = os.path.join(mxdir, "lib", "mp")
+    mp_modules_dir = os.path.normpath(mp_modules_dir)
+
+    return mp_modules_dir
+
+def set_mppath():
+    """Puts the mp directory in the system path, if it isn't already."""
+    os.environ['PATH']
+
+    mp_dir = get_mpdir()
+
+    if mp_dir not in os.environ['PATH']:
+        os.environ["PATH"] = mp_dir+os.pathsep+os.environ["PATH"]
+    if mp_dir not in sys.path:
+        sys.path.append(mp_dir)
 
 
 class ShutterStatusPanel(Frame):
@@ -259,7 +292,7 @@ class MotorEntry(Frame):
     def ifrompv(self):
         self.zap(None)
         if (self.go == 1):
-            self.mi.set(round(self.motorPV.get_position(readback=1), 4))
+            self.mi.set(round(self.motorPV.get_position(), 4))
             writestat('Start Position Selected')
             self.if2cw(None)
         else:
@@ -269,7 +302,7 @@ class MotorEntry(Frame):
     def ffrompv(self):
         self.zap(None)
         if (self.go == 1):
-            self.mf.set(round(self.motorPV.get_position(readback=1), 4))
+            self.mf.set(round(self.motorPV.get_position(), 4))
             writestat('End Position Selected')
             self.if2cw(None)
         else:
@@ -279,7 +312,7 @@ class MotorEntry(Frame):
     def cfrompv(self):
         self.zap(None)
         if (self.go == 1):
-            self.center.set(round(self.motorPV.get_position(readback=1), 4))
+            self.center.set(round(self.motorPV.get_position(), 4))
             writestat('Center Position Selected')
             self.cw2if(None)
         else:
@@ -311,17 +344,18 @@ class MotorEntry(Frame):
                     if (self.motorType.get() == 0):
                         self.PV = PV_BL + "e:m" + self.mPV.get()
                         # Call Motor at this point.
-                        self.motorPV = Motor(self.PV)
-                        self.mPVVAL.set(self.motorPV.description)
-                        self.mPVPOS.set(round(self.motorPV.get_position(readback=1), 4))
+                        self.motorPV = mx_database.get_record("m" + self.mPV.get())
+                        self.mPVVAL.set(self.motorPV.get_field('units'))
+                        self.mPVPOS.set(round(self.motorPV.get_position(), 4))
                         self.label.config(fg="green")
                         self.go = 1  # Everything is good as far as getting motor values is concerned.
                     else:
                         self.PV = PV_BL + "n:np" + self.mPV.get()
                         # Call Motor at this point.
-                        self.motorPV = Motor(self.PV)
-                        self.mPVVAL.set(self.motorPV.description)
-                        self.mPVPOS.set(round(self.motorPV.get_position(readback=1), 4))
+                        if not hasattr(self, 'motorPV'):
+                            self.motorPV = mx_database.get_record("np" + self.mPV.get())
+                        self.mPVVAL.set(self.motorPV.get_field('units'))
+                        self.mPVPOS.set(round(self.motorPV.get_position(), 4))
                         self.label.config(fg="green")
                         self.go = 1  # Everything is good as far as getting motor values is concerned.
         else:
@@ -519,7 +553,7 @@ class MainWindow(Frame):
         with open(pfile, 'r') as pfp:
             lineno = 0
             for line in pfp:
-                pdata = str.split(str.split(line, '=')[1], ',')
+                pdata = line.split('=')[1].split(',')
                 if lineno == 0:  # This is the version string
                     print("Parameter File Version:  " + str.strip(pdata[0]))
                     self.param.append(str.strip(pdata[0]))
@@ -548,7 +582,7 @@ class MainWindow(Frame):
         parlist = []
         with open(pfile, 'r+') as pfp:
             for line in pfp:
-                pdata = str.split(str.strip(str.split(line, '=')[1]), ',')
+                pdata = line.split('=')[1].split(',')
                 print(pdata, len(pdata))
                 ROI = len(pdata)
                 parlist.append(pdata)
@@ -706,6 +740,7 @@ class MainWindow(Frame):
         # Check for green lights everywhere
         # You should probably check to see if the shutters are open/closed.
         # Update motor information
+        print('Scanning started')
         self.m.my.zap(None)
         uy = self.m.my.use.get()
         self.m.mt.zap(None)
@@ -1119,7 +1154,7 @@ class MainWindow(Frame):
         self.progresstext.set("Beginning Scan...")
         # calculate number of steps and direction for each motor move:
         if (uy):
-            print("Y Motor = " + yPV.description)
+            print("Y Motor = ")
             print("yi = " + '%.3f' % yi)
             print("yf = " + '%.3f' % yf)
             print("ystep = " + '%.3f' % ystep)
@@ -1131,9 +1166,9 @@ class MainWindow(Frame):
             ylastpos = yPV.get_position()
 
             # This section is for motor timing  #
-            yv = yPV.__getattr__('slew_speed')
-            yvb = yPV.__getattr__('base_speed')
-            yta = yPV.__getattr__('acceleration')
+            yv = 1#yPV.get_field('slew_speed')
+            yvb = 1#yPV.get_field('base_speed')
+            yta = 1#yPV.get_field('acceleration')
             ytrap = (yv + yvb) * yta
             if (yv == yvb or yta == 0.):
                 yq = -1
@@ -1144,7 +1179,7 @@ class MainWindow(Frame):
         TotalYsteps = yns + 1
 
         if (ut):
-            print("T Motor = " + tPV.description)
+            print("T Motor = ")
             print("ti = " + '%.3f' % ti)
             print("tf = " + '%.3f' % tf)
             print("tstep = " + '%.3f' % tstep)
@@ -1156,9 +1191,9 @@ class MainWindow(Frame):
             tlastpos = tPV.get_position()
 
             # This section is for motor timing  #
-            tv = tPV.__getattr__('slew_speed')
-            tvb = tPV.__getattr__('base_speed')
-            tta = tPV.__getattr__('acceleration')
+            tv = 1#tPV.__getattr__('slew_speed')
+            tvb = 1#tPV.__getattr__('base_speed')
+            tta = 1#tPV.__getattr__('acceleration')
             ttrap = (tv + tvb) * tta
             if (tv == tvb or tta == 0.):
                 tq = -1
@@ -1169,7 +1204,7 @@ class MainWindow(Frame):
         TotalTsteps = tns + 1
 
         if (ux):
-            print("X Motor = " + xPV.description)
+            print("X Motor = ")
             print("xi = " + '%.3f' % xi)
             print("xf = " + '%.3f' % xf)
             print("xstep = " + '%.3f' % xstep)
@@ -1181,9 +1216,9 @@ class MainWindow(Frame):
             xlastpos = xPV.get_position()
 
             # This section is for motor timing  #
-            xv = xPV.__getattr__('slew_speed')
-            xvb = xPV.__getattr__('base_speed')
-            xta = xPV.__getattr__('acceleration')
+            xv = 1#xPV.getField('slew_speed')
+            xvb = 1#xPV.getField('base_speed')
+            xta = 1#xPV.getField('acceleration')
             xtrap = (xv + xvb) * xta
             if (xv == xvb or xta == 0.):
                 xq = -1
@@ -1217,6 +1252,7 @@ class MainWindow(Frame):
                 # set up inner (X) loop:
                 for x in range(xns + 1):
                     # If used, move motor
+                    print('================================ START')
                     if (ux):
                         xpos = xi + (x * xstep)
                         xmove = abs(xpos - xlastpos)
@@ -1256,7 +1292,10 @@ class MainWindow(Frame):
                         if (abort != 0): break
 
                     # take the data
+                    print('Start Scanning')
                     self.take_data(xPV, tPV, yPV, inttime, trigPV, h5f)
+                    print('Done Scanning')
+                    print('================================ END')
                     ###End of data loop...
                     #
                     if (abort != 0): break
@@ -1281,33 +1320,17 @@ class MainWindow(Frame):
         self.progresstext.set('Done!')
 
     def move_motor_debug(self, zPV, zname, zpos, zmove, zq, zv, zvb, zta, ztrap):
-        global dmswitch
-        self.statusbox.config(fg="gold")
-        self.statustext.set('Moving motor ' + zname + '...')
-        self.update()
-        print(zname + ' motor diagnostics: (step = ' + '%.3f' % zmove + ')')
-        if (zq < 0):
-            calct = zmove / zv
-            ztype = 'Top-hat'
-        elif (zmove >= ztrap):
-            calct = (zmove + (zv - zvb) * zta) / zv
-            ztype = 'Trapezoidal'
-        elif (zmove < ztrap):
-            calct = 2 * (np.sqrt(zvb ** 2 + zq * zmove) - zvb) / zq
-            ztype = 'Triangular'
-        print(zname + '          Calculated time:  ' + '%.3f' % (calct) + ' s (' + ztype + ')')
+        print('Motor movement started')
         t1 = time.time()
-        zPV.move(zpos)
-
-        # Wait for motor to complete move---New version for 0.9.5
-        for tq in range(100):
-            done = zPV.get('done_moving')
-            if done != 0: 
+        zPV.move_absolute(zpos)
+        while 1:
+            position, status = zPV.get_extended_status()
+            if (status & 0x1) == 0:
                 break
-            time.sleep(calct / 10.)
+            time.sleep(1.0)
         t2 = time.time()
-        print(zname + '              Actual time:  ' + '%.3f' % (t2 - t1) + ' s' + ' (' + repr(tq) + ' DMOV queries)')
-        if (tq == 99): dmswitch += 1
+        print(zname + '              Actual time:  ' + '%.3f' % (t2 - t1))
+        print('Motor movement Ended')
 
     def take_data(self, xPV, tPV, yPV, inttime, trigPV, h5f, isContinuous=False, mcaData=None):
         # This routine must do the following four things:
@@ -1328,13 +1351,13 @@ class MainWindow(Frame):
 
         thingy = 'Taking data at: '
         if (uy):
-            my = yPV.get_position(readback=1)
+            my = yPV.get_position()
             thingy = thingy + ' y = ' + '%.3f' % my
         if (ut):
-            mt = tPV.get_position(readback=1)
+            mt = tPV.get_position()
             thingy = thingy + ' t = ' + '%.3f' % mt
         if (ux):
-            mx = xPV.get_position(readback=1)
+            mx = xPV.get_position()
             thingy = thingy + ' x = ' + '%.3f' % mx
         self.statusbox.config(fg="gold")
         self.statustext.set(thingy)
@@ -1495,15 +1518,30 @@ class McaData:
         self.beamCurrent = 0
 
 
-# Run the app
-mw = MainWindow(None)
+if __name__ == '__main__':
+    try:
+        # First try to get the name from an environment variable.
+        database_filename = os.environ["MXDATABASE"]
+    except:
+        # If the environment variable does not exist, construct
+        # the filename for the default MX database.
+        mxdir = get_mxdir()
+        database_filename = os.path.join(mxdir, "etc", "mxmotor.dat")
+        database_filename = os.path.normpath(database_filename)
+
+    mx_database = mp.setup_database(database_filename)
+    mx_database.set_plot_enable(2)
+    mx_database.set_program_name("udiff")
+
+    # Run the app
+    mw = MainWindow(None)
 
 
-def writestat(message, color='gold', object=mw):
-    object.statusbox.config(fg=color)
-    object.statustext.set(message)
-    object.update()
+    def writestat(message, color='gold', object=mw):
+        object.statusbox.config(fg=color)
+        object.statustext.set(message)
+        object.update()
 
 
-mw.pack()
-mw.mainloop()
+    mw.pack()
+    mw.mainloop()
