@@ -4,13 +4,12 @@
 # Mono2 default
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import object, range, map, str
-from io import open
-import Mp as mp
 
 import os
 import sys
 import time
+from builtins import range, str
+from io import open
 from tkinter import Button, Radiobutton, Menubutton, Checkbutton
 from tkinter import Label, Frame, Menu, Entry
 from tkinter import SUNKEN, W, E, X, TOP, LEFT, RIGHT
@@ -18,9 +17,14 @@ from tkinter import StringVar, DoubleVar, IntVar
 from tkinter.filedialog import LoadFileDialog
 from tkinter.filedialog import askopenfilename
 
+try:
+    import Mp as mp
+except:
+    print('MP is not supported')
+
 import numpy as np
 import tables
-from epics import PV
+from epics import PV, Motor
 
 Version = '0.9.9-ccd beta'  # HDF save format, CCD trigger, MCA, Newport stages
 ccdfudge = 10  # seconds
@@ -121,17 +125,19 @@ NoXRF = 1  # one means don't save XRF
 def pv_connected(pv):
     status = pv.connected
     if not status:
-        print('\033[91mERROR: \033[0mProcess Variable \033[91m'+pv.pvname+'\033[0m is not connected')
+        print('\033[91mERROR: \033[0mProcess Variable \033[91m' + pv.pvname + '\033[0m is not connected')
     return status
+
 
 def get_mxdir():
     """Gets the top level install directory for MX."""
     try:
         mxdir = os.environ["MXDIR"]
     except:
-        mxdir = "/opt/mx"   # This is the default location.
+        mxdir = "/opt/mx"  # This is the default location.
 
     return mxdir
+
 
 def get_mpdir():
     """Construct the name of the Mp modules directory."""
@@ -142,6 +148,7 @@ def get_mpdir():
 
     return mp_modules_dir
 
+
 def set_mppath():
     """Puts the mp directory in the system path, if it isn't already."""
     os.environ['PATH']
@@ -149,7 +156,7 @@ def set_mppath():
     mp_dir = get_mpdir()
 
     if mp_dir not in os.environ['PATH']:
-        os.environ["PATH"] = mp_dir+os.pathsep+os.environ["PATH"]
+        os.environ["PATH"] = mp_dir + os.pathsep + os.environ["PATH"]
     if mp_dir not in sys.path:
         sys.path.append(mp_dir)
 
@@ -217,6 +224,7 @@ class MotorEntry(Frame):
         self.width = DoubleVar()
         self.mstep = DoubleVar()
         self.use = IntVar()
+        self.use_epics = IntVar()
         self.useb = Checkbutton(self, fg="blue", relief=SUNKEN, text="Use", variable=self.use)
         self.useb.grid(row=0, column=0, rowspan=2)
         self.useb.select()
@@ -236,9 +244,9 @@ class MotorEntry(Frame):
         Entry(self, bg='cyan', textvariable=self.mstep, width=6).grid(row=0, column=9, rowspan=1)
 
         Label(self, bg='grey', text=text, width=18).grid(row=1, column=1, sticky=W)
-        Label(self, text=PV_BL + 'e:m').grid(row=1, column=2, sticky=E)
+        Checkbutton(self, text="epics", variable=self.use_epics).grid(row=1, column=2, sticky=E)
         self.mPVTE = Entry(self, bg='cyan', textvariable=self.mPV, width=4)
-        self.mPVTE.bind("<Leave>", self.zap)
+        self.mPVTE.bind("<Return>", self.zap)
         self.mPVTE.grid(row=1, column=3, sticky=W)
         # Button(self, width=4, text=" Center: ", command=self.cfrompv).grid(row=1,column=4)
         # self.CenterTE = Entry(self,bg='yellow',textvariable=self.center, width=6)
@@ -251,23 +259,24 @@ class MotorEntry(Frame):
 
         # Add Radio Button to select different type of Motor. - By Chen
         #  Label(self, text=PV_BL+'e:m').grid(row=1, column=2, sticky=E)
-        self.motorText = StringVar()
-        Label(self, textvariable=self.motorText).grid(row=1, column=2, sticky=E)
+        # self.motorText = StringVar()
+        # Label(self, textvariable=self.motorText).grid(row=1, column=2, sticky=E)
         # End Chen
         # Add Radio Button to select different type of Motor. - By Chen
 
         self.motorType = IntVar()
-        self.stepperRB = Radiobutton(self, text="Stepper", variable=self.motorType, value=0, command=self.selMotType)
+        self.stepperRB = Radiobutton(self, text="Stepper", variable=self.motorType, value=0)
         self.stepperRB.grid(row=2, column=0, columnspan=2)
-        self.newportRB = Radiobutton(self, text="Newport", variable=self.motorType, value=1, command=self.selMotType)
+        self.newportRB = Radiobutton(self, text="Newport", variable=self.motorType, value=1)
         self.newportRB.grid(row=2, column=2, columnspan=2)
-        if (self.motorType.get() == 0):
-            self.motorText.set(PV_BL + 'e:m')
-            motorTypeSelected = 0
 
-        else:
-            self.motorText.set(PV_BL + 'n:np')
-            motorTypeSelected = 1
+        # if (self.motorType.get() == 0):
+        #     self.motorText.set(PV_BL + 'e:m')
+        #     motorTypeSelected = 0
+        #
+        # else:
+        #     self.motorText.set(PV_BL + 'n:np')
+        #     motorTypeSelected = 1
 
         # End Chen
 
@@ -278,21 +287,21 @@ class MotorEntry(Frame):
         Label(self, width=50).grid(row=3, columnspan=7)
 
     # Add Radio Button to select different type of Motor. - By Chen
-    def selMotType(self):
-        if (self.motorType.get() == 0):
-            self.motorText.set(PV_BL + 'e:m')
-            motorTypeSelected = 0
-
-        else:
-            self.motorText.set(PV_BL + 'n:np')
-            motorTypeSelected = 1
+    # def selMotType(self):
+    #     if (self.motorType.get() == 0):
+    #         self.motorText.set(PV_BL + 'e:m')
+    #         motorTypeSelected = 0
+    #
+    #     else:
+    #         self.motorText.set(PV_BL + 'n:np')
+    #         motorTypeSelected = 1
 
     # End Chen
 
     def ifrompv(self):
         self.zap(None)
         if (self.go == 1):
-            self.mi.set(round(self.motorPV.get_position(), 4))
+            self.mi.set(round(self.motorPV.position, 4))
             writestat('Start Position Selected')
             self.if2cw(None)
         else:
@@ -302,7 +311,7 @@ class MotorEntry(Frame):
     def ffrompv(self):
         self.zap(None)
         if (self.go == 1):
-            self.mf.set(round(self.motorPV.get_position(), 4))
+            self.mf.set(round(self.motorPV.position, 4))
             writestat('End Position Selected')
             self.if2cw(None)
         else:
@@ -312,7 +321,7 @@ class MotorEntry(Frame):
     def cfrompv(self):
         self.zap(None)
         if (self.go == 1):
-            self.center.set(round(self.motorPV.get_position(), 4))
+            self.center.set(round(self.motorPV.position, 4))
             writestat('Center Position Selected')
             self.cw2if(None)
         else:
@@ -326,38 +335,24 @@ class MotorEntry(Frame):
         # Set the flag red
         self.go = 0
         # If the motor isn't being used, then set the flag green, but disable it.
-        if (self.use.get()):
-            try:
-                a = int(self.mPV.get())
-            except ValueError:
-                self.motor = 'Invalid Motor'
-                self.mPVVAL.set(self.motor)
-                self.label.config(fg="pink")
-                exit
+        if (self.use.get() and len(self.mPV.get()) != 0):
+            if (self.motorType.get() == 0):
+                self.PV = PV_BL + "e:m" + self.mPV.get()
+                # Call Motor at this point.
+                self.motorPV = Motor(self.PV)
+                self.mPVVAL.set(self.motorPV.description)
+                self.mPVPOS.set(round(self.motorPV.get_position(readback=1), 4))
+                self.label.config(fg="green")
+                self.go = 1  # Everything is good as far as getting motor values is concerned.
             else:
-                if (a > MAXMOTORS or a <= 0):
-                    self.label.config(fg="pink")
-                    self.motor = 'PV out of range'
-                    self.mPVVAL.set(self.motor)
-                    exit
-                else:
-                    if (self.motorType.get() == 0):
-                        self.PV = PV_BL + "e:m" + self.mPV.get()
-                        # Call Motor at this point.
-                        self.motorPV = mx_database.get_record("m" + self.mPV.get())
-                        self.mPVVAL.set(self.motorPV.get_field('units'))
-                        self.mPVPOS.set(round(self.motorPV.get_position(), 4))
-                        self.label.config(fg="green")
-                        self.go = 1  # Everything is good as far as getting motor values is concerned.
-                    else:
-                        self.PV = PV_BL + "n:np" + self.mPV.get()
-                        # Call Motor at this point.
-                        if not hasattr(self, 'motorPV'):
-                            self.motorPV = mx_database.get_record("np" + self.mPV.get())
-                        self.mPVVAL.set(self.motorPV.get_field('units'))
-                        self.mPVPOS.set(round(self.motorPV.get_position(), 4))
-                        self.label.config(fg="green")
-                        self.go = 1  # Everything is good as far as getting motor values is concerned.
+                self.PV = PV_BL + "n:np" + self.mPV.get()
+                # Call Motor at this point.
+                if not hasattr(self, 'motorPV'):
+                    self.motorPV = MotorControl(self.mPV.get(), use_epic=self.use_epics.get(), mx_db=mx_database)
+                    self.mPVVAL.set(self.motorPV.description)
+                    self.mPVPOS.set(round(self.motorPV.position, 4))
+                self.label.config(fg="green")
+                self.go = 1  # Everything is good as far as getting motor values is concerned.
         else:
             self.go = 1
             self.motorPV = None
@@ -1020,38 +1015,38 @@ class MainWindow(Frame):
         # fHDFhead--------------------------------------------------------------------
         zz = 'FMAP Data Set for ' + filename
         h5f = tables.open_file(filename + '.' + HDFext, mode='w', title=zz,
-                              filters=tables.Filters(complevel=5))
+                               filters=tables.Filters(complevel=5))
         ginfo = h5f.create_group("/", 'header', 'Scan Information')
 
         a = h5f.create_array('/header', 'Date', [time.asctime()], 'Date of Data Aquisition')
         for i in range(len(KEITH)):
             a = h5f.create_array('/header', 'Keithley' + repr(i) + 'Gain', [k_gain_pv[i].get()],
-                                'Gain of Keithley Amplifier ' + repr(i) + ' (V/A)')
+                                 'Gain of Keithley Amplifier ' + repr(i) + ' (V/A)')
         # a = h5f.create_array('/header','MonochromatorEnergy',[Energy.get()],
         #      'Energy of Monochromator (keV)')
         a = h5f.create_array('/header', 'IntegrationTime', [inttime],
-                            'Detector integration time (s)')
+                             'Detector integration time (s)')
         if (ux):
             a = h5f.create_array('/header', 'Xinitial', [self.m.mx.mi.get()],
-                                'Initial X motor position (mm)')
+                                 'Initial X motor position (mm)')
             a = h5f.create_array('/header', 'Xstep', [self.m.mx.mstep.get()],
-                                'X motor step size (mm)')
+                                 'X motor step size (mm)')
             a = h5f.create_array('/header', 'Xfinal', [self.m.mx.mf.get()],
-                                'Final X motor position (mm)')
+                                 'Final X motor position (mm)')
         if (ut):
             a = h5f.create_array('/header', 'THETAinitial', [self.m.mt.mi.get()],
-                                'Initial THETA motor position (mm)')
+                                 'Initial THETA motor position (mm)')
             a = h5f.create_array('/header', 'THETAstep', [self.m.mt.mstep.get()],
-                                'THETA motor step size (mm)')
+                                 'THETA motor step size (mm)')
             a = h5f.create_array('/header', 'THETAfinal', [self.m.mt.mf.get()],
-                                'Final THETA motor position (mm)')
+                                 'Final THETA motor position (mm)')
         if (uy):
             a = h5f.create_array('/header', 'Yinitial', [self.m.my.mi.get()],
-                                'Initial Y motor position (mm)')
+                                 'Initial Y motor position (mm)')
             a = h5f.create_array('/header', 'Ystep', [self.m.my.mstep.get()],
-                                'Y motor step size (mm)')
+                                 'Y motor step size (mm)')
             a = h5f.create_array('/header', 'Yfinal', [self.m.my.mf.get()],
-                                'Final Y motor position (mm)')
+                                 'Final Y motor position (mm)')
 
         class sROIt(tables.IsDescription):
             MCAn = tables.UInt16Col(pos=1)
@@ -1163,12 +1158,12 @@ class MainWindow(Frame):
             if (delta < 0): dir = -1
             ystep = dir * abs(ystep)
             yns = int(round(abs((delta) / ystep)))
-            ylastpos = yPV.get_position()
+            ylastpos = yPV.position
 
             # This section is for motor timing  #
-            yv = 1#yPV.get_field('slew_speed')
-            yvb = 1#yPV.get_field('base_speed')
-            yta = 1#yPV.get_field('acceleration')
+            yv = yPV.slew_speed
+            yvb = yPV.base_speed
+            yta = yPV.acceleration
             ytrap = (yv + yvb) * yta
             if (yv == yvb or yta == 0.):
                 yq = -1
@@ -1188,12 +1183,12 @@ class MainWindow(Frame):
             if (delta < 0): dir = -1
             tstep = dir * abs(tstep)
             tns = int(round(abs((delta) / tstep)))
-            tlastpos = tPV.get_position()
+            tlastpos = tPV.position
 
             # This section is for motor timing  #
-            tv = 1#tPV.__getattr__('slew_speed')
-            tvb = 1#tPV.__getattr__('base_speed')
-            tta = 1#tPV.__getattr__('acceleration')
+            tv = tPV.slew_speed
+            tvb = tPV.base_speed
+            tta = tPV.acceleration
             ttrap = (tv + tvb) * tta
             if (tv == tvb or tta == 0.):
                 tq = -1
@@ -1213,12 +1208,12 @@ class MainWindow(Frame):
             if (delta < 0): dir = -1
             xstep = dir * abs(xstep)
             xns = int(round(abs((delta) / xstep)))
-            xlastpos = xPV.get_position()
+            xlastpos = xPV.position
 
             # This section is for motor timing  #
-            xv = 1#xPV.getField('slew_speed')
-            xvb = 1#xPV.getField('base_speed')
-            xta = 1#xPV.getField('acceleration')
+            xv = xPV.slew_speed
+            xvb = xPV.base_speed
+            xta = xPV.acceleration
             xtrap = (xv + xvb) * xta
             if (xv == xvb or xta == 0.):
                 xq = -1
@@ -1239,6 +1234,7 @@ class MainWindow(Frame):
             if (uy):
                 ypos = yi + (y * ystep)
                 ymove = abs(ypos - ylastpos)
+                yPV.move(ypos)
                 self.move_motor_debug(yPV, 'Y', ypos, ymove, yq, yv, yvb, yta, ytrap)
                 ylastpos = ypos
             # set up inner (Theta) loop:
@@ -1247,7 +1243,8 @@ class MainWindow(Frame):
                 if (ut):
                     tpos = ti + (t * tstep)
                     tmove = abs(tpos - tlastpos)
-                    self.move_motor_debug(tPV, 'Z', tpos, tmove, tq, tv, tvb, tta, ttrap)
+                    tPV.move(tpos)
+                    # self.move_motor_debug(tPV, 'Z', tpos, tmove, tq, tv, tvb, tta, ttrap)
                     tlastpos = tpos
                 # set up inner (X) loop:
                 for x in range(xns + 1):
@@ -1256,7 +1253,8 @@ class MainWindow(Frame):
                     if (ux):
                         xpos = xi + (x * xstep)
                         xmove = abs(xpos - xlastpos)
-                        self.move_motor_debug(xPV, 'X', xpos, xmove, xq, xv, xvb, xta, xtrap)
+                        xPV.move(xpos)
+                        # self.move_motor_debug(xPV, 'X', xpos, xmove, xq, xv, xvb, xta, xtrap)
                         xlastpos = xpos
                     #
                     ###Inside the data loop.... Try not to fill it with too much crap.
@@ -1351,13 +1349,13 @@ class MainWindow(Frame):
 
         thingy = 'Taking data at: '
         if (uy):
-            my = yPV.get_position()
+            my = yPV.position
             thingy = thingy + ' y = ' + '%.3f' % my
         if (ut):
-            mt = tPV.get_position()
+            mt = tPV.position
             thingy = thingy + ' t = ' + '%.3f' % mt
         if (ux):
-            mx = xPV.get_position()
+            mx = xPV.position
             thingy = thingy + ' x = ' + '%.3f' % mx
         self.statusbox.config(fg="gold")
         self.statustext.set(thingy)
@@ -1518,6 +1516,78 @@ class McaData:
         self.beamCurrent = 0
 
 
+class MotorControl:
+    def __init__(self, name, use_epic=False, mx_db=None):
+        print('Init use_epic ' + str(use_epic))
+        self.name = name
+        self._use_epic = use_epic
+        self._mx_db = mx_db
+        self._init_motor()
+        self._compute_speed()
+
+    def _compute_speed(self):
+        xv = self.slew_speed
+        xvb = self.base_speed
+        xta = self.acceleration
+        self.trap = (self.slew_speed + self.base_speed) * self.acceleration
+        if self.slew_speed == self.base_speed or self.acceleration == 0.:
+            self.mq = -1
+        else:
+            self.mq = (self.slew_speed - self.base_speed) / self.acceleration
+
+    def _init_motor(self):
+        print('Init ' + self.name)
+        if self._use_epic:
+            self.motor = Motor(self.name)
+        else:
+            self.motor = self._mx_db.get_record(self.name)
+
+    def move(self, position):
+        self.move_epic(position) if self._use_epic else self.move_mx(position)
+
+    def move_epic(self, position):
+        print('Motor movement started using Epic')
+        t1 = time.time()
+
+        # TODO: epic logic
+
+        t2 = time.time()
+        print('Motor movement Ended, Time: ' + '%.3f' % (t2 - t1))
+
+    def move_mx(self, position):
+        print('Motor movement started using MX')
+        t1 = time.time()
+        self.motor.move_absolute(position)
+        while 1:
+            position, status = self.motor.get_extended_status()
+            if (status & 0x1) == 0:
+                break
+            time.sleep(1.0)
+        t2 = time.time()
+        print('Motor movement Ended, Time: ' + '%.3f' % (t2 - t1))
+
+    @property
+    def slew_speed(self):
+        return self.motor.__getattr__('slew_speed') if self._use_epic else self.motor.get_speed()
+
+    @property
+    def base_speed(self):
+        return self.motor.__getattr__('base_speed') if self._use_epic else self.motor.get_base_speed()
+
+    @property
+    def acceleration(self):
+        return self.motor.__getattr__('acceleration') if self._use_epic else \
+            self.motor.get_raw_acceleration_parameters()[0]
+
+    @property
+    def description(self):
+        return self.motor.description if self._use_epic else 'Connected'
+
+    @property
+    def position(self):
+        return self.motor.get_position(readback=1) if self._use_epic else self.motor.get_position()
+
+
 if __name__ == '__main__':
     try:
         # First try to get the name from an environment variable.
@@ -1528,10 +1598,13 @@ if __name__ == '__main__':
         mxdir = get_mxdir()
         database_filename = os.path.join(mxdir, "etc", "mxmotor.dat")
         database_filename = os.path.normpath(database_filename)
-
-    mx_database = mp.setup_database(database_filename)
-    mx_database.set_plot_enable(2)
-    mx_database.set_program_name("udiff")
+    try:
+        mx_database = mp.setup_database(database_filename)
+        mx_database.set_plot_enable(2)
+        mx_database.set_program_name("udiff")
+        mx_database.set_program_name("udiff")
+    except:
+        print('MX is not supported')
 
     # Run the app
     mw = MainWindow(None)
