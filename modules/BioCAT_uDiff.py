@@ -1235,7 +1235,7 @@ class MainWindow(Frame):
                 ypos = yi + (y * ystep)
                 ymove = abs(ypos - ylastpos)
                 yPV.move(ypos)
-                self.move_motor_debug(yPV, 'Y', ypos, ymove, yq, yv, yvb, yta, ytrap)
+                # self.move_motor_debug(yPV, 'Y', ypos, ymove, yq, yv, yvb, yta, ytrap)
                 ylastpos = ypos
             # set up inner (Theta) loop:
             for t in range(tns + 1):
@@ -1523,12 +1523,9 @@ class MotorControl:
         self._use_epic = use_epic
         self._mx_db = mx_db
         self._init_motor()
-        self._compute_speed()
+        self._compute_speed_attr()
 
-    def _compute_speed(self):
-        xv = self.slew_speed
-        xvb = self.base_speed
-        xta = self.acceleration
+    def _compute_speed_attr(self):
         self.trap = (self.slew_speed + self.base_speed) * self.acceleration
         if self.slew_speed == self.base_speed or self.acceleration == 0.:
             self.mq = -1
@@ -1543,19 +1540,26 @@ class MotorControl:
             self.motor = self._mx_db.get_record(self.name)
 
     def move(self, position):
-        self.move_epic(position) if self._use_epic else self.move_mx(position)
+        self._move_epic(position) if self._use_epic else self._move_mx(position)
 
-    def move_epic(self, position):
+    def _move_epic(self, position):
         print('Motor movement started using Epic')
+        calc = self._log_move_time(position)
         t1 = time.time()
+        self.motor.move(position)
 
-        # TODO: epic logic
-
+        for tq in range(100):
+            time.sleep(calc / 10.)
+            done = self.motor.__getattr__('done_moving')
+            if done != 0:
+                break
         t2 = time.time()
+
         print('Motor movement Ended, Time: ' + '%.3f' % (t2 - t1))
 
-    def move_mx(self, position):
+    def _move_mx(self, position):
         print('Motor movement started using MX')
+        calc = self._log_move_time(position)
         t1 = time.time()
         self.motor.move_absolute(position)
         while 1:
@@ -1565,6 +1569,23 @@ class MotorControl:
             time.sleep(1.0)
         t2 = time.time()
         print('Motor movement Ended, Time: ' + '%.3f' % (t2 - t1))
+
+    def _log_move_time(self, position):
+        move = abs(position - self.position)
+        print('Motor diagnostics: (step = ' + '%.3f' % move + ')')
+        calc = ''
+        move_type = ''
+        if self.mq < 0:
+            calc = move / self.slew_speed
+            move_type = 'Top-hat'
+        elif move >= self.trap:
+            calc = (move + (self.slew_speed - self.base_speed) * self.acceleration) / self.slew_speed
+            move_type = 'Trapezoidal'
+        elif move < self.trap:
+            calc = 2 * (np.sqrt(self.base_speed ** 2 + self.mq * move) - self.base_speed) / self.mq
+            move_type = 'Triangular'
+        print('Calculated time:  ' + '%.3f' % calc + ' s (' + move_type + ')')
+        return calc
 
     @property
     def slew_speed(self):
