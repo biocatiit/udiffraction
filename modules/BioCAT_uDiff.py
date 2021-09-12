@@ -224,7 +224,6 @@ class MotorEntry(Frame):
         self.width = DoubleVar()
         self.mstep = DoubleVar()
         self.use = IntVar()
-        self.use_epics = IntVar()
         self.useb = Checkbutton(self, fg="blue", relief=SUNKEN, text="Use", variable=self.use)
         self.useb.grid(row=0, column=0, rowspan=2)
         self.useb.select()
@@ -244,8 +243,7 @@ class MotorEntry(Frame):
         Entry(self, bg='cyan', textvariable=self.mstep, width=6).grid(row=0, column=9, rowspan=1)
 
         Label(self, bg='grey', text=text, width=18).grid(row=1, column=1, sticky=W)
-        Checkbutton(self, text="epics", variable=self.use_epics).grid(row=1, column=2, sticky=E)
-        self.mPVTE = Entry(self, bg='cyan', textvariable=self.mPV, width=4)
+        self.mPVTE = Entry(self, bg='cyan', textvariable=self.mPV, width=10)
         self.mPVTE.bind("<Return>", self.zap)
         self.mPVTE.grid(row=1, column=3, sticky=W)
         # Button(self, width=4, text=" Center: ", command=self.cfrompv).grid(row=1,column=4)
@@ -264,39 +262,15 @@ class MotorEntry(Frame):
         # End Chen
         # Add Radio Button to select different type of Motor. - By Chen
 
-        self.motorType = IntVar()
-        self.stepperRB = Radiobutton(self, text="Stepper", variable=self.motorType, value=0)
-        self.stepperRB.grid(row=2, column=0, columnspan=2)
-        self.newportRB = Radiobutton(self, text="Newport", variable=self.motorType, value=1)
-        self.newportRB.grid(row=2, column=2, columnspan=2)
-
-        # if (self.motorType.get() == 0):
-        #     self.motorText.set(PV_BL + 'e:m')
-        #     motorTypeSelected = 0
-        #
-        # else:
-        #     self.motorText.set(PV_BL + 'n:np')
-        #     motorTypeSelected = 1
-
-        # End Chen
+        self.motorControlType = IntVar()
+        Radiobutton(self, text="EPICS", variable=self.motorControlType, value=1).grid(row=2, column=0, columnspan=2)
+        Radiobutton(self, text="MX", variable=self.motorControlType, value=0).grid(row=2, column=2, columnspan=2)
 
         Label(self, text="Current Position:  ").grid(row=1, column=4, columnspan=3, sticky=E)
         self.mpos = Label(self, bd=1, relief=SUNKEN, width=14, fg="gold", bg="black")
         self.mpos.config(textvariable=self.mPVPOS)
         self.mpos.grid(row=1, column=7, columnspan=2)
         Label(self, width=50).grid(row=3, columnspan=7)
-
-    # Add Radio Button to select different type of Motor. - By Chen
-    # def selMotType(self):
-    #     if (self.motorType.get() == 0):
-    #         self.motorText.set(PV_BL + 'e:m')
-    #         motorTypeSelected = 0
-    #
-    #     else:
-    #         self.motorText.set(PV_BL + 'n:np')
-    #         motorTypeSelected = 1
-
-    # End Chen
 
     def ifrompv(self):
         self.zap(None)
@@ -336,23 +310,14 @@ class MotorEntry(Frame):
         self.go = 0
         # If the motor isn't being used, then set the flag green, but disable it.
         if (self.use.get() and len(self.mPV.get()) != 0):
-            if (self.motorType.get() == 0):
-                self.PV = PV_BL + "e:m" + self.mPV.get()
-                # Call Motor at this point.
-                self.motorPV = Motor(self.PV)
+            self.PV = PV_BL + "n:np" + self.mPV.get()
+            # Call Motor at this point.
+            if not hasattr(self, 'motorPV'):
+                self.motorPV = MotorControl(self.mPV.get(), use_epic=self.motorControlType.get(), mx_db=mx_database)
                 self.mPVVAL.set(self.motorPV.description)
-                self.mPVPOS.set(round(self.motorPV.get_position(readback=1), 4))
-                self.label.config(fg="green")
-                self.go = 1  # Everything is good as far as getting motor values is concerned.
-            else:
-                self.PV = PV_BL + "n:np" + self.mPV.get()
-                # Call Motor at this point.
-                if not hasattr(self, 'motorPV'):
-                    self.motorPV = MotorControl(self.mPV.get(), use_epic=self.use_epics.get(), mx_db=mx_database)
-                    self.mPVVAL.set(self.motorPV.description)
-                    self.mPVPOS.set(round(self.motorPV.position, 4))
-                self.label.config(fg="green")
-                self.go = 1  # Everything is good as far as getting motor values is concerned.
+                self.mPVPOS.set(round(self.motorPV.position, 4))
+            self.label.config(fg="green")
+            self.go = 1  # Everything is good as far as getting motor values is concerned.
         else:
             self.go = 1
             self.motorPV = None
@@ -517,7 +482,10 @@ class MainWindow(Frame):
                         ['MCA', self.mca.MCAv],
                         ['MCAdt', self.mca.intt],
                         ['File', self.f.filename],
-                        ['FileIdx', self.f.fileidx]]
+                        ['FileIdx', self.f.fileidx],
+                        ['xc', self.m.mx.motorControlType],
+                        ['yc', self.m.my.motorControlType],
+                        ['tc', self.m.mt.motorControlType]]
 
     def psave(self, qfile=None):
         global pfile
@@ -1160,17 +1128,6 @@ class MainWindow(Frame):
             yns = int(round(abs((delta) / ystep)))
             ylastpos = yPV.position
 
-            # This section is for motor timing  #
-            yv = yPV.slew_speed
-            yvb = yPV.base_speed
-            yta = yPV.acceleration
-            ytrap = (yv + yvb) * yta
-            if (yv == yvb or yta == 0.):
-                yq = -1
-            else:
-                yq = (yv - yvb) / yta
-            #####################################
-
         TotalYsteps = yns + 1
 
         if (ut):
@@ -1184,17 +1141,6 @@ class MainWindow(Frame):
             tstep = dir * abs(tstep)
             tns = int(round(abs((delta) / tstep)))
             tlastpos = tPV.position
-
-            # This section is for motor timing  #
-            tv = tPV.slew_speed
-            tvb = tPV.base_speed
-            tta = tPV.acceleration
-            ttrap = (tv + tvb) * tta
-            if (tv == tvb or tta == 0.):
-                tq = -1
-            else:
-                tq = (tv - tvb) / tta
-            #####################################
 
         TotalTsteps = tns + 1
 
@@ -1210,17 +1156,6 @@ class MainWindow(Frame):
             xns = int(round(abs((delta) / xstep)))
             xlastpos = xPV.position
 
-            # This section is for motor timing  #
-            xv = xPV.slew_speed
-            xvb = xPV.base_speed
-            xta = xPV.acceleration
-            xtrap = (xv + xvb) * xta
-            if (xv == xvb or xta == 0.):
-                xq = -1
-            else:
-                xq = (xv - xvb) / xta
-            #####################################
-
         TotalXsteps = xns + 1
 
         npts = (yns + 1) * (tns + 1) * (xns + 1)
@@ -1235,7 +1170,6 @@ class MainWindow(Frame):
                 ypos = yi + (y * ystep)
                 ymove = abs(ypos - ylastpos)
                 yPV.move(ypos)
-                # self.move_motor_debug(yPV, 'Y', ypos, ymove, yq, yv, yvb, yta, ytrap)
                 ylastpos = ypos
             # set up inner (Theta) loop:
             for t in range(tns + 1):
@@ -1244,7 +1178,6 @@ class MainWindow(Frame):
                     tpos = ti + (t * tstep)
                     tmove = abs(tpos - tlastpos)
                     tPV.move(tpos)
-                    # self.move_motor_debug(tPV, 'Z', tpos, tmove, tq, tv, tvb, tta, ttrap)
                     tlastpos = tpos
                 # set up inner (X) loop:
                 for x in range(xns + 1):
@@ -1254,7 +1187,6 @@ class MainWindow(Frame):
                         xpos = xi + (x * xstep)
                         xmove = abs(xpos - xlastpos)
                         xPV.move(xpos)
-                        # self.move_motor_debug(xPV, 'X', xpos, xmove, xq, xv, xvb, xta, xtrap)
                         xlastpos = xpos
                     #
                     ###Inside the data loop.... Try not to fill it with too much crap.
@@ -1316,19 +1248,6 @@ class MainWindow(Frame):
         self.statusbox.config(fg="green")
         self.statustext.set("Scan Complete")
         self.progresstext.set('Done!')
-
-    def move_motor_debug(self, zPV, zname, zpos, zmove, zq, zv, zvb, zta, ztrap):
-        print('Motor movement started')
-        t1 = time.time()
-        zPV.move_absolute(zpos)
-        while 1:
-            position, status = zPV.get_extended_status()
-            if (status & 0x1) == 0:
-                break
-            time.sleep(1.0)
-        t2 = time.time()
-        print(zname + '              Actual time:  ' + '%.3f' % (t2 - t1))
-        print('Motor movement Ended')
 
     def take_data(self, xPV, tPV, yPV, inttime, trigPV, h5f, isContinuous=False, mcaData=None):
         # This routine must do the following four things:
@@ -1518,7 +1437,7 @@ class McaData:
 
 class MotorControl:
     def __init__(self, name, use_epic=False, mx_db=None):
-        print('Init use_epic ' + str(use_epic))
+        print('Init Motor Control use_epic: ' + str(use_epic))
         self.name = name
         self._use_epic = use_epic
         self._mx_db = mx_db
@@ -1533,7 +1452,6 @@ class MotorControl:
             self.mq = (self.slew_speed - self.base_speed) / self.acceleration
 
     def _init_motor(self):
-        print('Init ' + self.name)
         if self._use_epic:
             self.motor = Motor(self.name)
         else:
@@ -1619,6 +1537,8 @@ if __name__ == '__main__':
         mxdir = get_mxdir()
         database_filename = os.path.join(mxdir, "etc", "mxmotor.dat")
         database_filename = os.path.normpath(database_filename)
+
+    mx_database = None
     try:
         mx_database = mp.setup_database(database_filename)
         mx_database.set_plot_enable(2)
