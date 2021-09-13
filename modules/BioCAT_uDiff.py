@@ -312,7 +312,7 @@ class MotorEntry(Frame):
         if (self.use.get() and len(self.mPV.get()) != 0):
             self.PV = PV_BL + "n:np" + self.mPV.get()
             # Call Motor at this point.
-            if not hasattr(self, 'motorPV'):
+            if (not hasattr(self, 'motorPV')) or self.motorPV.name != self.mPV.get():
                 self.motorPV = MotorControl(self.mPV.get(), use_epic=self.motorControlType.get(), mx_db=mx_database)
                 self.mPVVAL.set(self.motorPV.description)
                 self.mPVPOS.set(round(self.motorPV.position, 4))
