@@ -223,6 +223,7 @@ class MotorEntry(Frame):
         self.center = DoubleVar()
         self.width = DoubleVar()
         self.mstep = DoubleVar()
+        self.total_step = DoubleVar()
         self.use = IntVar()
         self.useb = Checkbutton(self, fg="blue", relief=SUNKEN, text="Use", variable=self.use)
         self.useb.grid(row=0, column=0, rowspan=2)
@@ -240,7 +241,13 @@ class MotorEntry(Frame):
         self.FinalTE.bind("<Return>", self.if2cw)
         self.FinalTE.grid(row=0, column=7)
         Label(self, text=" Step: ").grid(row=0, column=8, rowspan=1)
-        Entry(self, bg='cyan', textvariable=self.mstep, width=6).grid(row=0, column=9, rowspan=1)
+        self.steps_field = Entry(self, bg='cyan', textvariable=self.mstep, width=6)
+        self.steps_field.grid(row=0, column=9, rowspan=1)
+        self.steps_field.bind("<KeyRelease>", self.update_total_step_details)
+        Label(self, text=" Total Step: ").grid(row=0, column=10, rowspan=1)
+        self.total_step_field = Entry(self, bg='cyan', textvariable=self.total_step, width=6)
+        self.total_step_field.grid(row=0, column=11, rowspan=1)
+        self.total_step_field.bind("<KeyRelease>", self.update_step_details)
 
         Label(self, bg='grey', text=text, width=18).grid(row=1, column=1, sticky=W)
         self.mPVTE = Entry(self, bg='cyan', textvariable=self.mPV, width=10)
@@ -271,6 +278,14 @@ class MotorEntry(Frame):
         self.mpos.config(textvariable=self.mPVPOS)
         self.mpos.grid(row=1, column=7, columnspan=2)
         Label(self, width=50).grid(row=3, columnspan=7)
+
+    def update_step_details(self, event):
+        step = self.mf.get() - self.mi.get()
+        self.mstep.set(step / self.total_step.get())
+
+    def update_total_step_details(self, event):
+        step = self.mf.get() - self.mi.get()
+        self.total_step.set(step / self.mstep.get())
 
     def ifrompv(self):
         self.zap(None)
@@ -1542,7 +1557,6 @@ if __name__ == '__main__':
     try:
         mx_database = mp.setup_database(database_filename)
         mx_database.set_plot_enable(2)
-        mx_database.set_program_name("udiff")
         mx_database.set_program_name("udiff")
     except:
         print('MX is not supported')
