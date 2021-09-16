@@ -10,9 +10,9 @@ import sys
 import time
 from builtins import range, str
 from io import open
-from tkinter import Button, Radiobutton, Menubutton, Checkbutton
+from tkinter import Button, Radiobutton, Menubutton, Checkbutton, OptionMenu, LabelFrame
 from tkinter import Label, Frame, Menu, Entry
-from tkinter import SUNKEN, W, E, X, TOP, LEFT, RIGHT
+from tkinter import SUNKEN, W, E, X, LEFT, RIGHT
 from tkinter import StringVar, DoubleVar, IntVar
 from tkinter.filedialog import LoadFileDialog
 from tkinter.filedialog import askopenfilename
@@ -211,7 +211,7 @@ class ShutterStatusPanel(Frame):
 
 
 class MotorEntry(Frame):
-    def __init__(self, master, text):
+    def __init__(self, master, text, visible=True):
         Frame.__init__(self, master)
         self.go = 0
         self.mPV = StringVar()
@@ -225,6 +225,19 @@ class MotorEntry(Frame):
         self.mstep = DoubleVar()
         self.total_step = DoubleVar()
         self.use = IntVar()
+        self.motorControlType = IntVar()
+        self.text = text
+        if visible:
+            self.build_gui()
+
+    def toggle_visibility(self, show=True):
+        if show:
+            self.build_gui()
+        else:
+            for child in self.winfo_children():
+                child.destroy()
+
+    def build_gui(self):
         self.useb = Checkbutton(self, fg="blue", relief=SUNKEN, text="Use", variable=self.use)
         self.useb.grid(row=0, column=0, rowspan=2)
         self.useb.select()
@@ -249,27 +262,11 @@ class MotorEntry(Frame):
         self.total_step_field.grid(row=0, column=11, rowspan=1)
         self.total_step_field.bind("<KeyRelease>", self.update_step_details)
 
-        Label(self, bg='grey', text=text, width=18).grid(row=1, column=1, sticky=W)
+        Label(self, bg='grey', text=self.text, width=18).grid(row=1, column=1, sticky=W)
         self.mPVTE = Entry(self, bg='cyan', textvariable=self.mPV, width=10)
         self.mPVTE.bind("<Return>", self.zap)
         self.mPVTE.grid(row=1, column=3, sticky=W)
-        # Button(self, width=4, text=" Center: ", command=self.cfrompv).grid(row=1,column=4)
-        # self.CenterTE = Entry(self,bg='yellow',textvariable=self.center, width=6)
-        # self.CenterTE.bind("<Return>",self.cw2if)
-        # self.CenterTE.grid(row=1,column=5)
-        # Label(self, text=" Width: ").grid(row=1,column=6)
-        # self.WidthTE = Entry(self,bg='yellow',textvariable=self.width, width=6)
-        # self.WidthTE.bind("<Return>",self.cw2if)
-        # self.WidthTE.grid(row=1,column=7)
 
-        # Add Radio Button to select different type of Motor. - By Chen
-        #  Label(self, text=PV_BL+'e:m').grid(row=1, column=2, sticky=E)
-        # self.motorText = StringVar()
-        # Label(self, textvariable=self.motorText).grid(row=1, column=2, sticky=E)
-        # End Chen
-        # Add Radio Button to select different type of Motor. - By Chen
-
-        self.motorControlType = IntVar()
         Radiobutton(self, text="EPICS", variable=self.motorControlType, value=1).grid(row=2, column=0, columnspan=2)
         Radiobutton(self, text="MX", variable=self.motorControlType, value=0).grid(row=2, column=2, columnspan=2)
 
@@ -356,14 +353,28 @@ class MotorEntry(Frame):
 
 
 class MotorPanel(Frame):
+    motor_count = [2, 3]
+
     def __init__(self, master):
         Frame.__init__(self, master)
+        self.motor_count_val = IntVar()
+        self.motor_count_val.set(self.motor_count[0])
+
+        opt_group = LabelFrame(self)
+        opt_group.grid(row=2, columnspan=3)
+        Label(opt_group, text="Number of Motors: ").grid(row=2, column=0)
+        w = OptionMenu(opt_group, self.motor_count_val, *self.motor_count, command=self.motor_count_change)
+        w.grid(row=2, column=1)
+
         self.mx = MotorEntry(self, "(1) MOTOR X")
-        self.mx.pack(side=TOP)
-        self.mt = MotorEntry(self, "(2) MOTOR Z")
-        self.mt.pack(side=TOP)
+        self.mx.grid(row=3)
         self.my = MotorEntry(self, "(3) MOTOR Y")
-        self.my.pack(side=TOP)
+        self.my.grid(row=4)
+        self.mt = MotorEntry(self, "(2) MOTOR Z", visible=False)
+        self.mt.grid(row=5)
+
+    def motor_count_change(self, value):
+        self.mt.toggle_visibility(value == 3)
 
 
 class MCAPanel(Frame):
@@ -441,7 +452,6 @@ class MainWindow(Frame):
         self.mb.menu.add_command(label="Load Scan Parameters from...", command=self.pload)
         self.mb.menu.add_separator()
         self.mb.menu.add_command(label="Quit", command=self.harikiri)
-        #  self.mb.grid(columnspan=3,sticky=W)
         self.mb.grid(row=0, sticky=W)
         Label(self, text=Version).grid(row=0, column=2, sticky=E)
         Label(self, text="Stepper Motor Scan for Microdiffraction").grid(row=0, column=1)
@@ -450,25 +460,28 @@ class MainWindow(Frame):
         self.m = MotorPanel(self)
         self.m.grid(columnspan=3)
         self.mca = MCAPanel(self)
-        self.mca.grid(columnspan=3)
+        self.mca.grid(columnspan=2)
         self.f = FilenamePanel(self, "Filename: ")
-        self.f.grid(columnspan=3)
+        self.f.grid(columnspan=2)
+
+        # self.fd = FileNameAndDestPanel(self, "Filename: ")
+        # self.fd.grid(columnspan=2)
         Button(self, text="Take Dark",
                activebackground="black", activeforeground="white",
-               command=self.take_dark).grid(row=5, column=0, sticky=W)
+               command=self.take_dark).grid(row=30, column=0, sticky=W)
         self.go = Button(self, bg='black', fg="green", text="Go! ->",
                          activebackground="green", activeforeground="black",
                          command=self.gogo)
-        self.go.grid(row=5, column=1, sticky=W)
+        self.go.grid(row=30, column=1, sticky=W)
         self.pauseb = Button(self, bg="black", fg="pink",
                              activebackground="red", activeforeground="blue",
                              command=self.pausebutton)
         self.pauseb.config(textvariable=self.pausetext)
-        self.pauseb.grid(row=5, column=1, sticky=E)
+        self.pauseb.grid(row=30, column=1, sticky=E)
         self.abortb = Button(self, text="ABORT", bg="black", fg="red",
                              activebackground="red", activeforeground="black",
                              command=self.abortbutton)
-        self.abortb.grid(row=5, column=2, sticky=E)
+        self.abortb.grid(row=30, column=2, sticky=E)
         self.go.bind("<Enter>", self.update_motors)
         self.statusbox = Label(self, bd=1, relief=SUNKEN, width=90, fg="gold", bg="black")
         self.statusbox.config(textvariable=self.statustext)
