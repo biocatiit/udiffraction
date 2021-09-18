@@ -544,7 +544,7 @@ class MainWindow(Frame):
         with open(pfile, 'r') as pfp:
             lineno = 0
             for line in pfp:
-                pdata = line.split('=')[1].split(',')
+                pdata = str.strip(line).split('=')[1].split(',')
                 if lineno == 0:  # This is the version string
                     print("Parameter File Version:  " + str.strip(pdata[0]))
                     self.param.append(str.strip(pdata[0]))
@@ -554,7 +554,7 @@ class MainWindow(Frame):
                     self.param.append(str.strip(pdata[idex]))
                 lineno += 1
 
-        if self.param[0] != Version:
+        if str.strip(self.param[0]) != Version:
             self.statusbox.config(fg="pink")
             self.statustext.set('Version Mismatch: ' + self.param[0] + ' != ' + Version)
             self.update()
@@ -573,11 +573,11 @@ class MainWindow(Frame):
         parlist = []
         with open(pfile, 'r+') as pfp:
             for line in pfp:
-                pdata = line.split('=')[1].split(',')
+                pdata = str.strip(line).split('=')[1].split(',')
                 print(pdata, len(pdata))
                 ROI = len(pdata)
                 parlist.append(pdata)
-            if parlist[0][0] != Version:
+            if str.strip(parlist[0][0]) != Version:
                 self.statusbox.config(fg="pink")
                 self.statustext.set('Version Mismatch: ' + parlist[0][0] + ' != ' + Version)
                 self.update()
@@ -1267,6 +1267,7 @@ class MainWindow(Frame):
             #
         if (ROI > cROI and abort == 0):
             self.pload(pfile, cROI)
+            self.update()
             cROI += 1
             self.check_status()
         # If at the end of a multiple ROI scan, reset ROI:
