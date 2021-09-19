@@ -8,6 +8,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import sys
 import time
+import tkinter as tk
 from builtins import range, str
 from io import open
 from tkinter import Button, Radiobutton, Menubutton, Checkbutton, OptionMenu, LabelFrame
@@ -15,7 +16,7 @@ from tkinter import Label, Frame, Menu, Entry
 from tkinter import SUNKEN, W, E, X, LEFT, RIGHT
 from tkinter import StringVar, DoubleVar, IntVar
 from tkinter.filedialog import LoadFileDialog
-from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilename, askdirectory
 
 try:
     import Mp as mp
@@ -26,7 +27,7 @@ import numpy as np
 import tables
 from epics import PV, Motor
 
-Version = '0.9.9-ccd beta'  # HDF save format, CCD trigger, MCA, Newport stages
+Version = '0.1.0-ccd beta'  # HDF save format, CCD trigger, MCA, Newport stages
 ccdfudge = 10  # seconds
 dxpfudge = 1
 fudge = 0.800
@@ -223,7 +224,7 @@ class MotorEntry(Frame):
         self.center = DoubleVar()
         self.width = DoubleVar()
         self.mstep = DoubleVar()
-        self.total_step = DoubleVar()
+        self.total_step = IntVar()
         self.use = IntVar()
         self.motorControlType = IntVar()
         self.text = text
@@ -258,7 +259,9 @@ class MotorEntry(Frame):
         self.steps_field.grid(row=0, column=9, rowspan=1)
         self.steps_field.bind("<KeyRelease>", self.update_total_step_details)
         Label(self, text=" Total Step: ").grid(row=0, column=10, rowspan=1)
-        self.total_step_field = Entry(self, bg='cyan', textvariable=self.total_step, width=6)
+        validator = (self.register(self.validate_int))
+        self.total_step_field = Entry(self, bg='cyan', textvariable=self.total_step, width=6, validate='all',
+                                      validatecommand=(validator, '%P'))
         self.total_step_field.grid(row=0, column=11, rowspan=1)
         self.total_step_field.bind("<KeyRelease>", self.update_step_details)
 
@@ -276,13 +279,19 @@ class MotorEntry(Frame):
         self.mpos.grid(row=1, column=7, columnspan=2)
         Label(self, width=50).grid(row=3, columnspan=7)
 
+    def validate_int(self, val):
+        if str.isdigit(val) or val == "":
+            return True
+        else:
+            return False
+
     def update_step_details(self, event):
         step = self.mf.get() - self.mi.get()
         self.mstep.set(step / self.total_step.get())
 
     def update_total_step_details(self, event):
         step = self.mf.get() - self.mi.get()
-        self.total_step.set(step / self.mstep.get())
+        self.total_step.set(int(step / self.mstep.get()))
 
     def ifrompv(self):
         self.zap(None)
@@ -356,12 +365,12 @@ class MotorPanel(Frame):
     motor_count = [2, 3]
 
     def __init__(self, master):
-        Frame.__init__(self, master)
+        LabelFrame.__init__(self, master, text="Motor Configuration")
         self.motor_count_val = IntVar()
         self.motor_count_val.set(self.motor_count[0])
 
-        opt_group = LabelFrame(self)
-        opt_group.grid(row=2, columnspan=3)
+        opt_group = Frame(self)
+        opt_group.grid(row=2, column=0, pady=7, sticky=W)
         Label(opt_group, text="Number of Motors: ").grid(row=2, column=0)
         w = OptionMenu(opt_group, self.motor_count_val, *self.motor_count, command=self.motor_count_change)
         w.grid(row=2, column=1)
@@ -384,13 +393,12 @@ class MCAPanel(Frame):
         self.MCAv = IntVar()
         self.tch = IntVar()
         self.tch.set(15)
-        Label(self, text=" Combined XRD/XRF? (Default Y)").grid(row=0, column=0)
+        Label(self, text=" Combined XRD/XRF? (Default Y)").grid(row=0, sticky=W)
         Radiobutton(self, text="No XRF", variable=self.MCAv, value=1).grid(row=1, column=0)
         Radiobutton(self, text="XRD/XRF", variable=self.MCAv, value=0).grid(row=1, column=1)
         NoXRF = self.MCAv.get()
         print('NoXRF=', NoXRF)
-        # Entry(self,bg='cyan',textvariable=self.intt, width=6).grid(row=0,column=2)
-        # Label(self, text="s").grid(row=0,column=3)
+
         Label(self, text="CCD Trigger Channel (Default = 15) ").grid(row=2, column=0)
         Entry(self, bg='cyan', textvariable=self.tch, width=6).grid(row=2, column=2, rowspan=2)
         Label(self, text="   Joerger Channels: ").grid(row=0, column=4, rowspan=1)
@@ -433,6 +441,34 @@ class FilenamePanel(Frame):
             self.fileidx.set(file.split('.')[0].split(sep)[-1])
 
 
+class ScanConfigPanel(LabelFrame):
+    def __init__(self, master, text):
+        LabelFrame.__init__(self, master, text="Scan Configuration")
+        self.filename_prefix = StringVar()
+        self.scan_path = StringVar()
+        self.log_path = StringVar()
+
+        Label(self, text='').grid(row=1)
+        Label(self, text='File Prefix:').grid(rowspan=2, row=2, column=1)
+        Entry(self, width=20, textvariable=self.filename_prefix).grid(rowspan=2, row=2, column=2)
+        Label(self, text='Scan Path').grid(row=2, column=3)
+        Entry(self, width=45, textvariable=self.scan_path).grid(row=2, column=4)
+        Button(self, text="Browse...", command=self.get_scan_dir).grid(row=2, column=5)
+
+        Label(self, text='Log Path').grid(row=3, column=3)
+        Entry(self, width=45, textvariable=self.log_path).grid(row=3, column=4)
+        Button(self, text="Browse...", command=self.get_log_dir).grid(row=3, column=5)
+        Label(self, text='').grid(row=4)
+
+    def get_log_dir(self):
+        dir_path = askdirectory()
+        self.log_path.set(dir_path)
+
+    def get_scan_dir(self):
+        dir_path = askdirectory()
+        self.scan_path.set(dir_path)
+
+
 class MainWindow(Frame):
     def __init__(self, master):
         Frame.__init__(self, master)
@@ -453,42 +489,52 @@ class MainWindow(Frame):
         self.mb.menu.add_separator()
         self.mb.menu.add_command(label="Quit", command=self.harikiri)
         self.mb.grid(row=0, sticky=W)
-        Label(self, text=Version).grid(row=0, column=2, sticky=E)
-        Label(self, text="Stepper Motor Scan for Microdiffraction").grid(row=0, column=1)
+        Label(self, text=Version).grid(row=0, column=0, sticky=E)
         self.shutter = ShutterStatusPanel(self)
-        self.shutter.grid(columnspan=3)
+        self.shutter.grid()
         self.m = MotorPanel(self)
-        self.m.grid(columnspan=3)
+        self.m.grid(pady=10)
         self.mca = MCAPanel(self)
-        self.mca.grid(columnspan=2)
+        self.mca.grid(padx=20, pady=10, column=0, sticky=W)
         self.f = FilenamePanel(self, "Filename: ")
-        self.f.grid(columnspan=2)
+        self.f.grid(column=0, sticky=W, padx=20)
 
-        # self.fd = FileNameAndDestPanel(self, "Filename: ")
-        # self.fd.grid(columnspan=2)
-        Button(self, text="Take Dark",
+        self.fd = ScanConfigPanel(self, "Filename: ")
+        self.fd.grid(pady=20, padx=20)
+
+        pactions = Frame(self)
+        pactions.grid(row=6, sticky=W)
+
+        Button(pactions, text="Take Dark",
                activebackground="black", activeforeground="white",
-               command=self.take_dark).grid(row=30, column=0, sticky=W)
-        self.go = Button(self, bg='black', fg="green", text="Go! ->",
+               command=self.take_dark).grid(row=0, column=0, sticky=W)
+
+        self.go = Button(pactions, bg='black', fg="green", text="Go! ->",
                          activebackground="green", activeforeground="black",
                          command=self.gogo)
-        self.go.grid(row=30, column=1, sticky=W)
-        self.pauseb = Button(self, bg="black", fg="pink",
+        self.go.grid(row=0, column=1, sticky=W, padx=30)
+        self.go.bind("<Enter>", self.update_motors)
+
+        nactions = Frame(self)
+        nactions.grid(row=6, sticky=E)
+
+        self.pauseb = Button(nactions, bg="black", fg="pink",
                              activebackground="red", activeforeground="blue",
                              command=self.pausebutton)
         self.pauseb.config(textvariable=self.pausetext)
-        self.pauseb.grid(row=30, column=1, sticky=E)
-        self.abortb = Button(self, text="ABORT", bg="black", fg="red",
+        self.pauseb.grid(row=0, column=0, padx=30)
+
+        self.abortb = Button(nactions, text="ABORT", bg="black", fg="red",
                              activebackground="red", activeforeground="black",
                              command=self.abortbutton)
-        self.abortb.grid(row=30, column=2, sticky=E)
-        self.go.bind("<Enter>", self.update_motors)
+        self.abortb.grid(row=0, column=1)
+
         self.statusbox = Label(self, bd=1, relief=SUNKEN, width=90, fg="gold", bg="black")
         self.statusbox.config(textvariable=self.statustext)
-        self.statusbox.grid(columnspan=3)
+        self.statusbox.grid()
         self.progressbox = Label(self, bd=1, relief=SUNKEN, width=90, fg="gold", bg="black")
         self.progressbox.config(textvariable=self.progresstext)
-        self.progressbox.grid(columnspan=3)
+        self.progressbox.grid()
 
         ####################################################################
         # If you change this structure, you MUST change the program Version!
@@ -511,9 +557,16 @@ class MainWindow(Frame):
                         ['MCAdt', self.mca.intt],
                         ['File', self.f.filename],
                         ['FileIdx', self.f.fileidx],
-                        ['xc', self.m.mx.motorControlType],
-                        ['yc', self.m.my.motorControlType],
-                        ['tc', self.m.mt.motorControlType]]
+                        ['num_of_motors', self.m.motor_count_val],
+                        ['x_control', self.m.mx.motorControlType],
+                        ['y_control', self.m.my.motorControlType],
+                        ['z_control', self.m.mt.motorControlType],
+                        ['x_total_step', self.m.mx.total_step],
+                        ['y_total_step', self.m.my.total_step],
+                        ['z_total_step', self.m.mt.total_step],
+                        ['scan_file_prefix', self.fd.filename_prefix],
+                        ['scan_path', self.fd.scan_path],
+                        ['scan_log_path', self.fd.log_path]]
 
     def psave(self, qfile=None):
         global pfile
@@ -1576,7 +1629,10 @@ if __name__ == '__main__':
         print('MX is not supported')
 
     # Run the app
-    mw = MainWindow(None)
+    # mw = MainWindow(None)
+    ws = tk.Tk()
+    ws.title("Stepper Motor Scan for Microdiffraction")
+    mw = MainWindow(ws)
 
 
     def writestat(message, color='gold', object=mw):
@@ -1586,4 +1642,4 @@ if __name__ == '__main__':
 
 
     mw.pack()
-    mw.mainloop()
+    ws.mainloop()
