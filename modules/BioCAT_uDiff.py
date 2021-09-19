@@ -8,9 +8,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import os
 import sys
 import time
+import tkinter as tk
 from builtins import range, str
 from io import open
-import tkinter as tk
 from tkinter import Button, Radiobutton, Menubutton, Checkbutton, OptionMenu, LabelFrame
 from tkinter import Label, Frame, Menu, Entry
 from tkinter import SUNKEN, W, E, X, LEFT, RIGHT
@@ -27,7 +27,7 @@ import numpy as np
 import tables
 from epics import PV, Motor
 
-Version = '0.9.9-ccd beta'  # HDF save format, CCD trigger, MCA, Newport stages
+Version = '0.1.0-ccd beta'  # HDF save format, CCD trigger, MCA, Newport stages
 ccdfudge = 10  # seconds
 dxpfudge = 1
 fudge = 0.800
@@ -224,7 +224,7 @@ class MotorEntry(Frame):
         self.center = DoubleVar()
         self.width = DoubleVar()
         self.mstep = DoubleVar()
-        self.total_step = DoubleVar()
+        self.total_step = IntVar()
         self.use = IntVar()
         self.motorControlType = IntVar()
         self.text = text
@@ -259,7 +259,9 @@ class MotorEntry(Frame):
         self.steps_field.grid(row=0, column=9, rowspan=1)
         self.steps_field.bind("<KeyRelease>", self.update_total_step_details)
         Label(self, text=" Total Step: ").grid(row=0, column=10, rowspan=1)
-        self.total_step_field = Entry(self, bg='cyan', textvariable=self.total_step, width=6)
+        validator = (self.register(self.validate_int))
+        self.total_step_field = Entry(self, bg='cyan', textvariable=self.total_step, width=6, validate='all',
+                                      validatecommand=(validator, '%P'))
         self.total_step_field.grid(row=0, column=11, rowspan=1)
         self.total_step_field.bind("<KeyRelease>", self.update_step_details)
 
@@ -277,13 +279,19 @@ class MotorEntry(Frame):
         self.mpos.grid(row=1, column=7, columnspan=2)
         Label(self, width=50).grid(row=3, columnspan=7)
 
+    def validate_int(self, val):
+        if str.isdigit(val) or val == "":
+            return True
+        else:
+            return False
+
     def update_step_details(self, event):
         step = self.mf.get() - self.mi.get()
         self.mstep.set(step / self.total_step.get())
 
     def update_total_step_details(self, event):
         step = self.mf.get() - self.mi.get()
-        self.total_step.set(step / self.mstep.get())
+        self.total_step.set(int(step / self.mstep.get()))
 
     def ifrompv(self):
         self.zap(None)
@@ -549,9 +557,16 @@ class MainWindow(Frame):
                         ['MCAdt', self.mca.intt],
                         ['File', self.f.filename],
                         ['FileIdx', self.f.fileidx],
-                        ['xc', self.m.mx.motorControlType],
-                        ['yc', self.m.my.motorControlType],
-                        ['tc', self.m.mt.motorControlType]]
+                        ['num_of_motors', self.m.motor_count_val],
+                        ['x_control', self.m.mx.motorControlType],
+                        ['y_control', self.m.my.motorControlType],
+                        ['z_control', self.m.mt.motorControlType],
+                        ['x_total_step', self.m.mx.total_step],
+                        ['y_total_step', self.m.my.total_step],
+                        ['z_total_step', self.m.mt.total_step],
+                        ['scan_file_prefix', self.fd.filename_prefix],
+                        ['scan_path', self.fd.scan_path],
+                        ['scan_log_path', self.fd.log_path]]
 
     def psave(self, qfile=None):
         global pfile
@@ -1618,6 +1633,7 @@ if __name__ == '__main__':
     ws = tk.Tk()
     ws.title("Stepper Motor Scan for Microdiffraction")
     mw = MainWindow(ws)
+
 
     def writestat(message, color='gold', object=mw):
         object.statusbox.config(fg=color)
