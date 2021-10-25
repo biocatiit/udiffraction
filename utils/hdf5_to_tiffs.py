@@ -1,34 +1,36 @@
+import argparse
 import os
-import sys
 
 import fabio
 import tifffile
 
 
-def read_data_file(fn):
+def log_progress(progress, total):
+    per = int(progress * 100 / total)
+    print('\r[{1:>2}%  {0:100}]'.format('#' * per, per), end='')
+    if per >= 100:
+        print(' [DONE]')
+
+
+def generate_tiff_files(fn, metadata, path, prefix):
+    print('Generating TIFF Files...')
     with fabio.open(fn) as fabio_img:
 
-        if fabio_img.nframes == 1:
-            data = fabio_img.data
-            hdf_data = [data]
+        create_tiff(fabio_img.data, metadata, path, prefix, 1)
 
-        else:
-            hdf_data = [fabio_img.data]
-
-            for i in range(1, fabio_img.nframes):
+        if fabio_img.nframes > 1:
+            for i in range(2, fabio_img.nframes + 1):
                 fabio_img = fabio_img.next()
-                hdf_data.append(fabio_img.data)
+                create_tiff(fabio_img.data, metadata, path, prefix, i)
+                log_progress(i, fabio_img.nframes)
 
-    return hdf_data
+    print('Completed')
 
 
-def create_tiffs(img_data, metadata, dir, prefix):
-    i = 1
-    for data in img_data:
-        tif_file_name = dir + os.sep + prefix + '_{:04d}'.format(i) + '.tif'
-        extra_tags = [("ImageDescription", 's', 0, metadata, True)]
-        tifffile.imsave(tif_file_name, data, extratags=extra_tags)
-        i += 1
+def create_tiff(img_data, metadata, path, prefix, serial):
+    tif_file_name = path + os.sep + prefix + '_{:04d}'.format(serial) + '.tif'
+    extra_tags = [("ImageDescription", 's', 0, metadata, True)]
+    tifffile.imsave(tif_file_name, img_data, extratags=extra_tags)
 
 
 def read_meta_data(meta_fn):
@@ -37,13 +39,21 @@ def read_meta_data(meta_fn):
 
 
 if __name__ == '__main__':
-    filename = sys.argv[1]
-    path = os.path.dirname(filename)
-    prefix = os.path.basename(filename).rsplit('.', 1)[0]
-    metadata = ''
-    if len(sys.argv) > 2:
-        metadata_filename = sys.argv[2]
-        metadata = read_meta_data(metadata_filename)
+    parser = argparse.ArgumentParser(
+        description='The script will generate the tiff files from the given hdf5 file. Metadata will be read from the '
+                    'given metadata file and added as an ImageDescription tag in all the tiff files.')
+    parser.add_argument('-h5', metavar='hdf5', help='Path to the Hdf5 file')
+    parser.add_argument('-m', metavar='metadata', help='Path to the metadata text file')
+    args = parser.parse_args()
 
-    img_data = read_data_file(filename)
-    create_tiffs(img_data, metadata, path, prefix)
+    h5_filename = args.h5
+    if not h5_filename:
+        print(parser.format_help())
+    else:
+        path = os.path.dirname(h5_filename)
+        prefix = os.path.basename(h5_filename).rsplit('.', 1)[0]
+        metadata = ''
+        if args.m:
+            metadata = read_meta_data(args.m)
+
+        generate_tiff_files(h5_filename, metadata, path, prefix)
